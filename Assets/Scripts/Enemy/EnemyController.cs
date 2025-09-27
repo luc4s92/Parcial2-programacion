@@ -1,88 +1,73 @@
-using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class EnemyController : MonoBehaviour
+public abstract class EnemyController : MonoBehaviour
 {
+    [SerializeField] protected Transform player;
+    [SerializeField] protected float detectionRadius = 5.0f;
+    [SerializeField] protected float speed = 4.0f;
+    [SerializeField] protected int life = 3;
 
-    [SerializeField] Transform player;
-    [SerializeField] float detectionRadius = 5.0f;
-    [SerializeField] float speed = 4.0f;
-    [SerializeField] int life = 3;
+    protected bool takeDamage;
+    protected bool isDead;
+    protected bool isPlayerAlive;
+    protected Rigidbody2D rigidBody;
+    protected Animator animator;
 
-    private bool takeDamage;
-    private Rigidbody2D rigidBody;
-    private float collitionForce = 3f;
-    private Vector2 movement;
-    private bool onMovement;
-    private bool isDead;
-    private bool isPlayerAlive;
-    private Animator animator;
-    void Start()
+    protected virtual void Start()
     {
         isPlayerAlive = true;
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
     }
 
-    
-    void Update()
+    protected virtual void Update()
     {
         if (isPlayerAlive && !isDead)
         {
-            Movement();
-
+            EnemyBehaviour();
         }
-
-
-
-
 
         animator.SetBool("damage", takeDamage);
         animator.SetBool("death", isDead);
-        animator.SetBool("onMovement", onMovement);
+    }
 
+    public virtual void TakingDamage(Vector2 direction, int totalDamage)
+    {
+        if (!takeDamage)
+        {
+            life -= totalDamage;
+            takeDamage = true;
+
+            if (life <= 0)
+            {
+                isDead = true;
+            }
+            else
+            {
+                Vector2 rebound = new Vector2(transform.position.x - direction.x, 0.1f).normalized;
+                rigidBody.AddForce(rebound * 3f, ForceMode2D.Impulse);
+            }
+        }
     }
 
     public void DeactivateDamage()
     {
         takeDamage = false;
         rigidBody.velocity = Vector2.zero;
-
     }
-    public void TakingDamage(Vector2 direction, int totalDamage)
+
+    public void DeleteBody()
     {
-        if (!takeDamage)
-        {
-            life -= totalDamage;
-            takeDamage = true;
-            if (life <= 0)
-            {
-                isDead = true;
-                onMovement = false;
-            }
-            else
-            {
-                Vector2 rebote = new Vector2(transform.position.x - direction.x, 0.1f).normalized;
-                rigidBody.AddForce(rebote * collitionForce, ForceMode2D.Impulse);
-            }
-
-
-        }
+        Destroy(gameObject);
     }
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            Vector2 directionDamage = new Vector2(transform.position.x, 0);
             PlayerMovement playerScript = collision.gameObject.GetComponent<PlayerMovement>();
-            playerScript.TakingDamage(directionDamage, 1);
+            playerScript.TakingDamage(new Vector2(transform.position.x, 0), 1);
             isPlayerAlive = !playerScript.IsDead;
-            if (!isPlayerAlive)
-            {
-                onMovement = false;
-            }
         }
     }
 
@@ -90,42 +75,8 @@ public class EnemyController : MonoBehaviour
     {
         if (collision.CompareTag("Sword"))
         {
-            Vector2 directionDamage = new Vector2(collision.gameObject.transform.position.x, 0);
-            TakingDamage(directionDamage, 1);
+            TakingDamage(new Vector2(collision.transform.position.x, 0), 1);
         }
-    }
-    private void Movement()
-    {
-        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-
-        if (distanceToPlayer < detectionRadius)
-        {
-            Vector2 direction = (player.position - transform.position).normalized;
-            if (direction.x < 0)
-            {
-                transform.localScale = new Vector3(1, 1, 1);
-            }
-            if (direction.x > 0)
-            {
-
-                transform.localScale = new Vector3(-1, 1, 1);
-            }
-            movement = new Vector2(direction.x, 0);
-            onMovement = true;
-        }
-        else
-        {
-            movement = Vector2.zero;
-            onMovement = false;
-        }
-
-        if (!takeDamage)
-            rigidBody.MovePosition(rigidBody.position + movement * speed * Time.deltaTime);
-    }
-
-    public void DeleteDody()
-    {
-        Destroy(gameObject);
     }
 
     private void OnDrawGizmosSelected()
@@ -134,4 +85,6 @@ public class EnemyController : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
 
+    //  Cada tipo de enemigo implementará su propia lógica
+    protected abstract void EnemyBehaviour();
 }
