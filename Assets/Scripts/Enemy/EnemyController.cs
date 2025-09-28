@@ -9,13 +9,12 @@ public abstract class EnemyController : MonoBehaviour
 
     protected bool takeDamage;
     protected bool isDead;
-    protected bool isPlayerAlive;
+    protected bool isPlayerAlive = true;
     protected Rigidbody2D rigidBody;
     protected Animator animator;
 
     protected virtual void Start()
     {
-        isPlayerAlive = true;
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
     }
@@ -61,16 +60,6 @@ public abstract class EnemyController : MonoBehaviour
         Destroy(gameObject);
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            PlayerMovement playerScript = collision.gameObject.GetComponent<PlayerMovement>();
-            playerScript.TakingDamage(new Vector2(transform.position.x, 0), 1);
-            isPlayerAlive = !playerScript.IsDead;
-        }
-    }
-
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Sword"))
@@ -85,6 +74,5 @@ public abstract class EnemyController : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
 
-    //  Cada tipo de enemigo implementará su propia lógica
     protected abstract void EnemyBehaviour();
 }
