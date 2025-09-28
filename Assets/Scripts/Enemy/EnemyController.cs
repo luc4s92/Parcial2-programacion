@@ -1,11 +1,11 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public abstract class EnemyController : MonoBehaviour, IEnemyContext
 {
     [Header("Stats")]
     [SerializeField] protected Transform player;
     [SerializeField] protected float detectionRadius = 5.0f;
-    [SerializeField] protected float speed =0.5f;
+    [SerializeField] protected float speed = 0.5f;
     [SerializeField] protected int life = 3;
 
     [Header("State")]
@@ -15,12 +15,13 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
 
     [Header("Components")]
     protected Rigidbody2D rigidBody;
-    protected Animator animator;
+    [SerializeField] protected Animator animator;
+    protected SpriteRenderer sprite;
 
     // Estrategia de movimiento
     protected IEnemyStrategy strategy;
 
-    // Exposici�n para Strategy
+    // Exposición para Strategy
     public Transform Transform => transform;
     public Rigidbody2D Rigidbody => rigidBody;
     public float Speed => speed;
@@ -35,14 +36,17 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
     {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        sprite = GetComponent<SpriteRenderer>();
 
-        // Suscribir a la muerte del Player
         if (player != null)
         {
             Health playerHealth = player.GetComponent<Health>();
             if (playerHealth != null)
                 playerHealth.OnDeath += HandlePlayerDeath;
         }
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.RegisterEnemy(this);
     }
 
     protected virtual void Update()
@@ -76,11 +80,19 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
             if (life <= 0)
             {
                 isDead = true;
-                rigidBody.velocity = Vector2.zero; // detener inmediatamente
+                rigidBody.velocity = Vector2.zero;
+
+                Debug.Log($"[{gameObject.name}] Muerto → notificando al GameManager");
+
+                // Avisar al GameManager
+                if (GameManager.Instance != null)
+                    GameManager.Instance.EnemyKilled(this);
+
+                // 🔹 Drop de item al morir
+                DropItem();
             }
             else
             {
-                // Rebote
                 Vector2 rebound = new Vector2(transform.position.x - direction.x, 0.1f).normalized;
                 rigidBody.AddForce(rebound * 3f, ForceMode2D.Impulse);
             }
@@ -96,10 +108,12 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
 
     public void DeleteBody()
     {
+        if (GameManager.Instance != null)
+            GameManager.Instance.UnregisterEnemy(this);
+
         Destroy(gameObject);
     }
 
-    // ---------------- COLLISIONS ----------------
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Sword") && !isDead)
@@ -114,7 +128,6 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
 
-    // ---------------- EVENTS ----------------
     private void HandlePlayerDeath()
     {
         isPlayerAlive = false;
@@ -122,6 +135,16 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
             rigidBody.velocity = Vector2.zero;
     }
 
-    // ---------------- STRATEGY ----------------
+    public void NotifyPlayerDeath()
+    {
+        isPlayerAlive = false;
+        if (rigidBody != null)
+            rigidBody.velocity = Vector2.zero;
+    }
+
+    // ---------------- ABSTRACT ----------------
     protected abstract void EnemyBehaviour();
+
+    // 🔹 Nuevo método abstracto: cada enemigo decide qué item suelta
+    protected abstract void DropItem();
 }

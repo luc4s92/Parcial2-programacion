@@ -1,50 +1,59 @@
-using System;
 using UnityEngine;
+using System;
 
-public class Health : MonoBehaviour, IDamageable
+public class Health : MonoBehaviour
 {
-    [SerializeField] private int maxLife = 3;
-
-    private int currentLife;
-    private bool isDead;
+    [Header("Vida")]
+    [SerializeField] private int maxLife = 5;
+    [SerializeField] private int currentLife;
 
     public int Life => currentLife;
     public int MaxLife => maxLife;
-    public bool IsAlive => !isDead;
+    public bool IsAlive => currentLife > 0;
 
-    // Evento: vida actual y máxima + dirección del ataque
-    public event Action<int, int, Vector2> OnLifeChanged;
-
+    // Eventos
+    public event Action<int, int, Vector2> OnLifeChanged; // vidaActual, vidaMax, dirección del daño
     public event Action OnDeath;
 
     private void Awake()
     {
         currentLife = maxLife;
-        OnLifeChanged?.Invoke(currentLife, maxLife, Vector2.zero);
     }
 
-    // Implementación exacta de IDamageable
-    public void TakeDamage(int damage, Vector2 direction)
+    // ----------------- Daño -----------------
+    public void TakeDamage(int damage, Vector2 attackDirection)
     {
-        if (isDead) return;
+        if (!IsAlive) return;
 
         currentLife -= damage;
+        currentLife = Mathf.Max(currentLife, 0);
 
-        // Disparar evento de vida
-        OnLifeChanged?.Invoke(currentLife, maxLife, direction);
+        OnLifeChanged?.Invoke(currentLife, maxLife, attackDirection);
 
-        // Comprobar muerte
-        if (currentLife <= 0 && !isDead)
+        if (currentLife <= 0)
         {
-            isDead = true;
             OnDeath?.Invoke();
         }
     }
 
-    public void RestoreFullHealth()
+    // ----------------- Curación -----------------
+    public void Heal(int amount)
+    {
+        if (!IsAlive) return; // no curar si está muerto
+
+        currentLife += amount;
+        currentLife = Mathf.Min(currentLife, maxLife);
+
+        Debug.Log($"[Health] Curado +{amount}. Vida actual: {currentLife}/{maxLife}");
+
+        // notificar para actualizar UI
+        OnLifeChanged?.Invoke(currentLife, maxLife, Vector2.zero);
+    }
+
+    // ----------------- Reset -----------------
+    public void ResetLife()
     {
         currentLife = maxLife;
-        isDead = false;
         OnLifeChanged?.Invoke(currentLife, maxLife, Vector2.zero);
     }
 }

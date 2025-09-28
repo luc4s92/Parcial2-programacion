@@ -1,15 +1,15 @@
 using UnityEngine;
 
-public class PowerUp : Item
+public class Vino : Item
 {
     public override void Use(GameObject player)
     {
-        Debug.Log("Agarraste un Power Up -> más velocidad!");
+        Debug.Log("Tomaste un vino -> estás ebrio, pierdes velocidad!");
 
         PlayerMovement movement = player.GetComponent<PlayerMovement>();
         if (movement != null)
         {
-            movement.ApplySpeedModifier(2f, 5f); //  multiplica por 2 la velocidad por 5s
+            movement.ApplySpeedModifier(0.5f, 5f); //  reduce a la mitad la velocidad por 5s
         }
 
         Destroy(gameObject);

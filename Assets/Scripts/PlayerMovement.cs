@@ -28,6 +28,14 @@ public class PlayerMovement : MonoBehaviour
     private bool atack;
     private bool isKnockback;
 
+    // ---- NUEVO: para los ítems de velocidad ----
+    public float MoveSpeed
+    {
+        get => playerSpeed;
+        set => playerSpeed = Mathf.Max(0f, value); // nunca negativo
+    }
+    private Coroutine speedModifierRoutine;
+
     private void Awake()
     {
         rigidBody = GetComponent<Rigidbody2D>();
@@ -73,9 +81,9 @@ public class PlayerMovement : MonoBehaviour
     private void Movement()
     {
         float inputX = Input.GetAxis("Horizontal");
-        rigidBody.velocity = new Vector2(inputX * playerSpeed, rigidBody.velocity.y);
+        rigidBody.velocity = new Vector2(inputX * MoveSpeed, rigidBody.velocity.y);
 
-        animator.SetFloat("movement", Mathf.Abs(inputX * playerSpeed));
+        animator.SetFloat("movement", Mathf.Abs(inputX * MoveSpeed));
 
         if (inputX < 0) transform.localScale = new Vector3(-1, 1, 1);
         if (inputX > 0) transform.localScale = new Vector3(1, 1, 1);
@@ -160,4 +168,31 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, transform.position + Vector3.down * longitudRaycast);
     }
+
+    // ----------- NUEVO: manejo de modificadores de velocidad -----------
+
+    public void ApplySpeedModifier(float multiplier, float duration)
+    {
+        if (speedModifierRoutine != null)
+            StopCoroutine(speedModifierRoutine);
+
+        speedModifierRoutine = StartCoroutine(SpeedModifier(multiplier, duration));
+    }
+
+    private IEnumerator SpeedModifier(float multiplier, float duration)
+    {
+        float original = MoveSpeed;
+        MoveSpeed = Mathf.Max(0f, original * multiplier);
+
+        Debug.Log($"[SpeedModifier] Velocidad modificada: {MoveSpeed} (x{multiplier}) durante {duration} segundos");
+
+        yield return new WaitForSeconds(duration);
+
+        MoveSpeed = original;
+        Debug.Log($"[SpeedModifier] Efecto terminado -> Velocidad restaurada a {MoveSpeed}");
+
+        speedModifierRoutine = null;
+    }
+
 }
+
