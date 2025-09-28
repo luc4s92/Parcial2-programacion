@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(Collider2D))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : MonoBehaviour, IDamageable
 {
     [Header("Movimiento")]
     [SerializeField] private float jumpForce = 8f;
@@ -28,13 +28,12 @@ public class PlayerMovement : MonoBehaviour
     private bool atack;
     private bool isKnockback;
 
-    // ---- NUEVO: para los ítems de velocidad ----
-    public float MoveSpeed
-    {
-        get => playerSpeed;
-        set => playerSpeed = Mathf.Max(0f, value); // nunca negativo
-    }
+    // ---------------- POWER UPS ----------------
+    private float baseSpeed;                 // Velocidad original
+    public float MoveSpeed { get; private set; } // Velocidad actual
     private Coroutine speedModifierRoutine;
+    private float currentMultiplier = 1f;
+    private float remainingDuration = 0f;
 
     private void Awake()
     {
@@ -44,6 +43,9 @@ public class PlayerMovement : MonoBehaviour
 
         health.OnLifeChanged += OnLifeChanged;
         health.OnDeath += OnDeath;
+
+        baseSpeed = playerSpeed; // Guardamos velocidad original
+        MoveSpeed = baseSpeed;
     }
 
     private void Start()
@@ -93,7 +95,6 @@ public class PlayerMovement : MonoBehaviour
     public void DeactivateAtacking() => atack = false;
 
     // ----------------- Daño y rebote -----------------
-
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (!health.IsAlive || isKnockback) return;
@@ -107,7 +108,7 @@ public class PlayerMovement : MonoBehaviour
                 0.5f
             ).normalized;
 
-            health.TakeDamage(1, attackDir);
+            TakeDamage(1, attackDir);
 
             StartCoroutine(ApplyKnockback(attackDir, collision.collider));
         }
@@ -169,30 +170,54 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawLine(transform.position, transform.position + Vector3.down * longitudRaycast);
     }
 
-    // ----------- NUEVO: manejo de modificadores de velocidad -----------
+    // ----------- Power-ups de velocidad -----------
 
     public void ApplySpeedModifier(float multiplier, float duration)
     {
         if (speedModifierRoutine != null)
-            StopCoroutine(speedModifierRoutine);
+        {
+            // Si ya hay un efecto activo, extender tiempo
+            remainingDuration += duration;
+            Debug.Log($"[SpeedModifier] Se extendió duración, tiempo restante: {remainingDuration:F2}s");
+        }
+        else
+        {
+            // Nuevo efecto
+            currentMultiplier = multiplier;
+            remainingDuration = duration;
 
-        speedModifierRoutine = StartCoroutine(SpeedModifier(multiplier, duration));
+            MoveSpeed = baseSpeed * currentMultiplier;
+            speedModifierRoutine = StartCoroutine(SpeedModifier());
+
+            Debug.Log($"[SpeedModifier] Velocidad modificada: {MoveSpeed} (x{multiplier}) durante {duration}s");
+        }
     }
 
-    private IEnumerator SpeedModifier(float multiplier, float duration)
+    private IEnumerator SpeedModifier()
     {
-        float original = MoveSpeed;
-        MoveSpeed = Mathf.Max(0f, original * multiplier);
+        while (remainingDuration > 0)
+        {
+            remainingDuration -= Time.deltaTime;
+            yield return null;
+        }
 
-        Debug.Log($"[SpeedModifier] Velocidad modificada: {MoveSpeed} (x{multiplier}) durante {duration} segundos");
-
-        yield return new WaitForSeconds(duration);
-
-        MoveSpeed = original;
-        Debug.Log($"[SpeedModifier] Efecto terminado -> Velocidad restaurada a {MoveSpeed}");
-
+        // Restaurar velocidad original
+        MoveSpeed = baseSpeed;
+        currentMultiplier = 1f;
         speedModifierRoutine = null;
+
+        Debug.Log($"[SpeedModifier] Efecto terminado -> Velocidad restaurada a {MoveSpeed}");
     }
 
-}
+    // ========================
+    //   Implementación de IDamageable
+    // ========================
+    public int Life => health.Life;
+    public bool IsAlive => health.IsAlive;
 
+    public void TakeDamage(int damage, Vector2 attackDirection)
+    {
+        health.TakeDamage(damage, attackDirection);
+        
+    }
+}

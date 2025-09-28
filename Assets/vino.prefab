@@ -12,8 +12,7 @@ GameObject:
   - component: {fileID: 2107356161794859985}
   - component: {fileID: 5476796782251456380}
   - component: {fileID: 5182189384983813114}
-  - component: {fileID: -8398497514436693740}
-  - component: {fileID: 2686795675782775003}
+  - component: {fileID: -1098572482834004112}
   m_Layer: 6
   m_Name: vino
   m_TagString: Untagged
@@ -77,7 +76,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -9095717837082945937, guid: 207ee8102dd4143d288186ef0be518ee, type: 3}
+  m_Sprite: {fileID: -1803614365, guid: 6baa63e64e862cc4396f154a595f4bac, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -124,7 +123,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 2}
+    oldSize: {x: 0.5, y: 0.5}
     newSize: {x: 1, y: 2}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -160,7 +159,7 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!114 &-8398497514436693740
+--- !u!114 &-1098572482834004112
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -169,18 +168,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 1443968852663624239}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17e7d6200df6bd04193115c4cb0e1de4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &2686795675782775003
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1443968852663624239}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3224568bfa92469419f4f33018ab07ba, type: 3}
+  m_Script: {fileID: 11500000, guid: bf74441d995da61458fd3f798e42cb85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

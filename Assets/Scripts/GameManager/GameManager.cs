@@ -89,7 +89,8 @@ public class GameManager : MonoBehaviour
     {
         CurrentState = GameState.Victory;
         Debug.Log("Victory!");
-        SceneManager.LoadScene("VictoryScreen");
+        Debug.Log($"Enemigos derrotados: {enemiesKilled}");
+        SceneManager.LoadScene("WinnerScreen");
     }
 
     public void TogglePause()
