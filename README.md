@@ -83,13 +83,6 @@ Se diseñaron varias interfaces para favorecer el **desacoplamiento**:
 
 ---
 
-## 🧩 Diagrama UML
-
-![UML](./uml_diagram.png)  
-_(Ejemplo de la relación entre EnemyController, MeleeEnemy, RangedEnemy y las estrategias)_
-
----
-
 ## 🚀 Cómo jugar
 
 1. Descargar el repositorio.
@@ -122,5 +115,5 @@ _(Ejemplo de la relación entre EnemyController, MeleeEnemy, RangedEnemy y las e
 
 ## ✨ Autor
 
-Proyecto desarrollado por **[Tu Nombre]**  
-👨‍💻 [Tu GitHub](https://github.com/tuusuario)
+Proyecto desarrollado por Lucas Gonzalez
+👨‍💻 [Tu GitHub](https://github.com/luc4s92)
