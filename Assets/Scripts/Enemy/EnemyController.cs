@@ -1,38 +1,74 @@
 using UnityEngine;
 
-public abstract class EnemyController : MonoBehaviour
+public abstract class EnemyController : MonoBehaviour, IEnemyContext
 {
+    [Header("Stats")]
     [SerializeField] protected Transform player;
     [SerializeField] protected float detectionRadius = 5.0f;
-    [SerializeField] protected float speed = 4.0f;
+    [SerializeField] protected float speed =0.5f;
     [SerializeField] protected int life = 3;
 
+    [Header("State")]
     protected bool takeDamage;
     protected bool isDead;
     protected bool isPlayerAlive = true;
+
+    [Header("Components")]
     protected Rigidbody2D rigidBody;
     protected Animator animator;
 
+    // Estrategia de movimiento
+    protected IEnemyStrategy strategy;
+
+    // Exposición para Strategy
+    public Transform Transform => transform;
+    public Rigidbody2D Rigidbody => rigidBody;
+    public float Speed => speed;
+    public Transform Player => player;
+    public float DetectionRadius => detectionRadius;
+    public bool IsTakingDamage => takeDamage;
+    public bool IsAlive => !isDead;
+    public bool IsPlayerAlive => isPlayerAlive;
+
+    // ---------------- UNITY ----------------
     protected virtual void Start()
     {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+
+        // Suscribir a la muerte del Player
+        if (player != null)
+        {
+            Health playerHealth = player.GetComponent<Health>();
+            if (playerHealth != null)
+                playerHealth.OnDeath += HandlePlayerDeath;
+        }
     }
 
     protected virtual void Update()
     {
-        if (isPlayerAlive && !isDead)
-        {
-            EnemyBehaviour();
-        }
-
         animator.SetBool("damage", takeDamage);
         animator.SetBool("death", isDead);
     }
 
+    protected virtual void FixedUpdate()
+    {
+        if (isDead || !isPlayerAlive)
+        {
+            if (rigidBody != null)
+                rigidBody.velocity = Vector2.zero;
+
+            animator.SetBool("onMovement", false);
+            return;
+        }
+
+        EnemyBehaviour();
+    }
+
+    // ---------------- DAMAGE ----------------
     public virtual void TakingDamage(Vector2 direction, int totalDamage)
     {
-        if (!takeDamage)
+        if (!takeDamage && !isDead)
         {
             life -= totalDamage;
             takeDamage = true;
@@ -40,9 +76,11 @@ public abstract class EnemyController : MonoBehaviour
             if (life <= 0)
             {
                 isDead = true;
+                rigidBody.velocity = Vector2.zero; // detener inmediatamente
             }
             else
             {
+                // Rebote
                 Vector2 rebound = new Vector2(transform.position.x - direction.x, 0.1f).normalized;
                 rigidBody.AddForce(rebound * 3f, ForceMode2D.Impulse);
             }
@@ -52,7 +90,8 @@ public abstract class EnemyController : MonoBehaviour
     public void DeactivateDamage()
     {
         takeDamage = false;
-        rigidBody.velocity = Vector2.zero;
+        if (rigidBody != null)
+            rigidBody.velocity = Vector2.zero;
     }
 
     public void DeleteBody()
@@ -60,9 +99,10 @@ public abstract class EnemyController : MonoBehaviour
         Destroy(gameObject);
     }
 
+    // ---------------- COLLISIONS ----------------
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("Sword"))
+        if (collision.CompareTag("Sword") && !isDead)
         {
             TakingDamage(new Vector2(collision.transform.position.x, 0), 1);
         }
@@ -74,5 +114,14 @@ public abstract class EnemyController : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
 
+    // ---------------- EVENTS ----------------
+    private void HandlePlayerDeath()
+    {
+        isPlayerAlive = false;
+        if (rigidBody != null)
+            rigidBody.velocity = Vector2.zero;
+    }
+
+    // ---------------- STRATEGY ----------------
     protected abstract void EnemyBehaviour();
 }
