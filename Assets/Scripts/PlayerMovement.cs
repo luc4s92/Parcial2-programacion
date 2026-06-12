@@ -17,9 +17,11 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [SerializeField] private float collitionForce = 6f;
     [SerializeField] private float knockbackDuration = 0.25f;
     [SerializeField] private float deathDelay = 4f;
+    private bool attackHit;
 
     [Header("Referencias")]
     [SerializeField] private Animator animator;
+    [SerializeField] private PlayerAudio playerAudio;
 
     private Rigidbody2D rigidBody;
     private Collider2D myCollider;
@@ -73,6 +75,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             if (Input.GetKeyUp(KeyCode.Z) && !atack && onFloor)
             {
                 Atacking();
+                
             }
         }
 
@@ -91,7 +94,12 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         if (inputX > 0) transform.localScale = new Vector3(1, 1, 1);
     }
 
-    public void Atacking() => atack = true;
+    public void Atacking()
+    {
+        atack = true;
+        attackHit = false;
+        playerAudio?.PlaySwing();
+    } 
     public void DeactivateAtacking() => atack = false;
 
     // ----------------- Daño y rebote -----------------
@@ -109,6 +117,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             ).normalized;
 
             TakeDamage(1, attackDir);
+            playerAudio?.PlayDamage();
 
             StartCoroutine(ApplyKnockback(attackDir, collision.collider));
         }

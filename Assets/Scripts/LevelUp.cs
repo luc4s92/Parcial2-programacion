@@ -1,15 +1,36 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+
 public class LevelUp : MonoBehaviour
 {
-    // Start is called before the first frame update
+    [Header("Audio")]
+    [SerializeField] private AudioSource portalAudio;
+    [SerializeField] private float delayBeforeLoad = 0.6f;
+
+    private bool triggered = false;
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if(collision.CompareTag("Player"))
+        if (!collision.CompareTag("Player")) return;
+        if (triggered) return;
+
+        triggered = true;
+
+        // reproducir sonido
+        if (portalAudio != null)
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex +1);
+            portalAudio.Stop();
+            portalAudio.Play();
         }
+
+        // cargar siguiente escena con delay
+        StartCoroutine(LoadNextScene());
+    }
+
+    private IEnumerator LoadNextScene()
+    {
+        yield return new WaitForSeconds(delayBeforeLoad);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
 }

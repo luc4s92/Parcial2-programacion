@@ -16,6 +16,7 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
     [Header("Components")]
     protected Rigidbody2D rigidBody;
     [SerializeField] protected Animator animator;
+    [SerializeField] private EnemyAudio enemyAudio;
     protected SpriteRenderer sprite;
 
     // Estrategia de movimiento
@@ -76,11 +77,12 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
         {
             life -= totalDamage;
             takeDamage = true;
-
+            enemyAudio?.PlayHit();
             if (life <= 0)
             {
                 isDead = true;
                 rigidBody.velocity = Vector2.zero;
+                enemyAudio?.PlayDeath();
 
                 Debug.Log($"[{gameObject.name}] Muerto → notificando al GameManager");
 

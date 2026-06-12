@@ -8,7 +8,7 @@ public class MeleeEnemy : EnemyController
     [Header("Drops")]
     [SerializeField] private List<GameObject> possibleDrops; // lista de prefabs de items
     [SerializeField] private float dropChance = 1f; // % probabilidad de soltar algo
-
+    
     protected override void Start()
     {
         base.Start();
