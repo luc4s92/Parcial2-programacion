@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -22,9 +23,14 @@ public class GameManager : MonoBehaviour
     public enum GameState { Playing, Paused, GameOver, Victory }
     public GameState CurrentState { get; private set; } = GameState.Playing;
 
+    [Header("Derrota")]
+    [SerializeField] private string loserSceneName = "LoserScreen";
+    [SerializeField] private float loserSceneDelay = 4f;
+
     // ----------------- Referencias -----------------
     [SerializeField] private Transform player;
     private Health playerHealth;
+    private Coroutine loserSceneRoutine;
 
     // Lista de enemigos activos
     private List<EnemyController> activeEnemies = new List<EnemyController>();
@@ -36,10 +42,26 @@ public class GameManager : MonoBehaviour
     {
         if (player != null)
         {
-            playerHealth = player.GetComponent<Health>();
-            if (playerHealth != null)
-                playerHealth.OnDeath += OnPlayerDeath;
+            RegisterPlayer(player.GetComponent<Health>());
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (playerHealth != null)
+            playerHealth.OnDeath -= OnPlayerDeath;
+    }
+
+    public void RegisterPlayer(Health health)
+    {
+        if (health == null || playerHealth == health) return;
+
+        if (playerHealth != null)
+            playerHealth.OnDeath -= OnPlayerDeath;
+
+        playerHealth = health;
+        playerHealth.OnDeath += OnPlayerDeath;
+        CurrentState = GameState.Playing;
     }
 
     // ----------------- Enemigos -----------------
@@ -67,22 +89,34 @@ public class GameManager : MonoBehaviour
     // ----------------- Estados del juego -----------------
     private void OnPlayerDeath()
     {
+        if (CurrentState == GameState.GameOver) return;
+
         CurrentState = GameState.GameOver;
         Debug.Log("Game Over");
 
-        // Avisar a los enemigos que el player murió
-        foreach (var enemy in activeEnemies)
+        // Avisar a los enemigos que el player murio
+        for (int i = activeEnemies.Count - 1; i >= 0; i--)
         {
-            enemy.NotifyPlayerDeath();
+            if (activeEnemies[i] == null)
+            {
+                activeEnemies.RemoveAt(i);
+                continue;
+            }
+
+            activeEnemies[i].NotifyPlayerDeath();
         }
 
-        // Cargar pantalla de derrota después de 2 segundos
-        Invoke(nameof(LoadLoserScreen), 2f);
+        if (loserSceneRoutine != null)
+            StopCoroutine(loserSceneRoutine);
+
+        loserSceneRoutine = StartCoroutine(LoadLoserScreenAfterDelay());
     }
 
-    private void LoadLoserScreen()
+    private IEnumerator LoadLoserScreenAfterDelay()
     {
-        SceneManager.LoadScene("LoserScreen");
+        yield return new WaitForSecondsRealtime(loserSceneDelay);
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(loserSceneName);
     }
 
     public void SetVictory()

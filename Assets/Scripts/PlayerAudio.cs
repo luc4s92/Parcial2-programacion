@@ -7,20 +7,32 @@ public class PlayerAudio : MonoBehaviour
    [SerializeField] private AudioSource swingSFX;
    [SerializeField] private AudioSource hitSFX;
    [SerializeField] private AudioSource damageSFX;
+   [SerializeField] private AudioSource deathSFX;
 
     public void PlaySwing()
     {
-        swingSFX.Play();
+        swingSFX?.Play();
     }
 
     public void PlayHit()
     {
-        hitSFX.Play();
+        hitSFX?.Play();
     }
 
     public void PlayDamage()
     {
-        damageSFX.Play();
+        damageSFX?.Play();
+    }
+
+    public void PlayDeath()
+    {
+        if (deathSFX != null)
+        {
+            deathSFX.Play();
+            return;
+        }
+
+        damageSFX?.Play();
     }
 
   

@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Health))]
@@ -16,7 +15,6 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [Header("Combate")]
     [SerializeField] private float collitionForce = 6f;
     [SerializeField] private float knockbackDuration = 0.25f;
-    [SerializeField] private float deathDelay = 4f;
     private bool attackHit;
 
     [Header("Referencias")]
@@ -52,6 +50,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void Start()
     {
+        GameManager.Instance?.RegisterPlayer(health);
         EventManager.TriggerPlayerLifeChanged(health.Life, health.Life);
     }
 
@@ -102,14 +101,14 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     } 
     public void DeactivateAtacking() => atack = false;
 
-    // ----------------- Daño y rebote -----------------
+    // ----------------- Danio y rebote -----------------
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (!health.IsAlive || isKnockback) return;
 
         if (collision.collider.CompareTag("Enemy"))
         {
-            Debug.Log("[PlayerMovement] Colisión con Enemy");
+            Debug.Log("[PlayerMovement] Colision con Enemy");
 
             Vector2 attackDir = new Vector2(
                 transform.position.x - collision.transform.position.x,
@@ -117,9 +116,12 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             ).normalized;
 
             TakeDamage(1, attackDir);
-            playerAudio?.PlayDamage();
 
-            StartCoroutine(ApplyKnockback(attackDir, collision.collider));
+            if (health.IsAlive)
+            {
+                playerAudio?.PlayDamage();
+                StartCoroutine(ApplyKnockback(attackDir, collision.collider));
+            }
         }
     }
 
@@ -164,13 +166,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     {
         animator.SetBool("death", true);
         rigidBody.velocity = Vector2.zero;
-        StartCoroutine(LoadLoserScreenAfterDelay());
-    }
-
-    private IEnumerator LoadLoserScreenAfterDelay()
-    {
-        yield return new WaitForSeconds(deathDelay);
-        SceneManager.LoadScene("LoserScreen");
+        playerAudio?.PlayDeath();
     }
 
     private void OnDrawGizmos()
@@ -187,7 +183,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         {
             // Si ya hay un efecto activo, extender tiempo
             remainingDuration += duration;
-            Debug.Log($"[SpeedModifier] Se extendió duración, tiempo restante: {remainingDuration:F2}s");
+            Debug.Log($"[SpeedModifier] Se extendio duracion, tiempo restante: {remainingDuration:F2}s");
         }
         else
         {
@@ -219,7 +215,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     }
 
     // ========================
-    //   Implementación de IDamageable
+    //   Implementacion de IDamageable
     // ========================
     public int Life => health.Life;
     public bool IsAlive => health.IsAlive;
