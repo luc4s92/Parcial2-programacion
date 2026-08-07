@@ -85,7 +85,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void Movement()
     {
         float inputX = Input.GetAxis("Horizontal");
-        rigidBody.velocity = new Vector2(inputX * MoveSpeed, rigidBody.velocity.y);
+        rigidBody.linearVelocity = new Vector2(inputX * MoveSpeed, rigidBody.linearVelocity.y);
 
         animator.SetFloat("movement", Mathf.Abs(inputX * MoveSpeed));
 
@@ -132,7 +132,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         if (enemyCollider != null)
             Physics2D.IgnoreCollision(myCollider, enemyCollider, true);
 
-        rigidBody.velocity = Vector2.zero;
+        rigidBody.linearVelocity = Vector2.zero;
 
         Vector2 knockbackForce = new Vector2(direction.x * collitionForce, direction.y * (collitionForce * 0.5f));
         rigidBody.AddForce(knockbackForce, ForceMode2D.Impulse);
@@ -142,7 +142,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         if (enemyCollider != null)
             Physics2D.IgnoreCollision(myCollider, enemyCollider, false);
 
-        rigidBody.velocity = Vector2.zero;
+        rigidBody.linearVelocity = Vector2.zero;
         isKnockback = false;
     }
 
@@ -165,7 +165,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void OnDeath()
     {
         animator.SetBool("death", true);
-        rigidBody.velocity = Vector2.zero;
+        rigidBody.linearVelocity = Vector2.zero;
         playerAudio?.PlayDeath();
     }
 

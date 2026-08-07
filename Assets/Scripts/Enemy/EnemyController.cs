@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public abstract class EnemyController : MonoBehaviour, IEnemyContext
 {
@@ -61,7 +61,7 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
         if (isDead || !isPlayerAlive)
         {
             if (rigidBody != null)
-                rigidBody.velocity = Vector2.zero;
+                rigidBody.linearVelocity = Vector2.zero;
 
             animator.SetBool("onMovement", false);
             return;
@@ -81,16 +81,16 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
             if (life <= 0)
             {
                 isDead = true;
-                rigidBody.velocity = Vector2.zero;
+                rigidBody.linearVelocity = Vector2.zero;
                 enemyAudio?.PlayDeath();
 
-                Debug.Log($"[{gameObject.name}] Muerto → notificando al GameManager");
+                Debug.Log($"[{gameObject.name}] Muerto -> notificando al GameManager");
 
                 // Avisar al GameManager
                 if (GameManager.Instance != null)
                     GameManager.Instance.EnemyKilled(this);
 
-                // 🔹 Drop de item al morir
+                // Drop de item al morir
                 DropItem();
             }
             else
@@ -105,7 +105,7 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
     {
         takeDamage = false;
         if (rigidBody != null)
-            rigidBody.velocity = Vector2.zero;
+            rigidBody.linearVelocity = Vector2.zero;
     }
 
     public void DeleteBody()
@@ -134,19 +134,19 @@ public abstract class EnemyController : MonoBehaviour, IEnemyContext
     {
         isPlayerAlive = false;
         if (rigidBody != null)
-            rigidBody.velocity = Vector2.zero;
+            rigidBody.linearVelocity = Vector2.zero;
     }
 
     public void NotifyPlayerDeath()
     {
         isPlayerAlive = false;
         if (rigidBody != null)
-            rigidBody.velocity = Vector2.zero;
+            rigidBody.linearVelocity = Vector2.zero;
     }
 
     // ---------------- ABSTRACT ----------------
     protected abstract void EnemyBehaviour();
 
-    // 🔹 Nuevo método abstracto: cada enemigo decide qué item suelta
+    // Nuevo metodo abstracto: cada enemigo decide que item suelta
     protected abstract void DropItem();
 }

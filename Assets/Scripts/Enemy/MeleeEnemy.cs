@@ -19,7 +19,7 @@ public class MeleeEnemy : EnemyController
     {
         if (isDead || Player == null || !isPlayerAlive)
         {
-            Rigidbody.velocity = Vector2.zero;
+            Rigidbody.linearVelocity = Vector2.zero;
             animator.SetBool("onMovement", false);
             return;
         }
@@ -37,7 +37,7 @@ public class MeleeEnemy : EnemyController
         else
         {
             animator.SetBool("onMovement", false);
-            Rigidbody.velocity = Vector2.zero;
+            Rigidbody.linearVelocity = Vector2.zero;
         }
     }
 
@@ -52,7 +52,7 @@ public class MeleeEnemy : EnemyController
             GameObject itemToDrop = possibleDrops[index];
             Instantiate(itemToDrop, transform.position, Quaternion.identity);
 
-            Debug.Log($"[{gameObject.name}] soltó: {itemToDrop.name}");
+            Debug.Log($"[{gameObject.name}] solto: {itemToDrop.name}");
         }
     }
 }
