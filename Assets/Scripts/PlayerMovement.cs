@@ -4,6 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(PlayerInputReader))]
 public class PlayerMovement : MonoBehaviour, IDamageable
 {
     [Header("Movimiento")]
@@ -38,6 +39,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private Rigidbody2D rigidBody;
     private Collider2D myCollider;
     private Health health;
+    private PlayerInputReader inputReader;
     private PlayerMovementPhysics movementPhysics;
     private PlayerStateMachine stateMachine;
     private PlayerLocomotionState locomotionState;
@@ -58,6 +60,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         rigidBody = GetComponent<Rigidbody2D>();
         myCollider = GetComponent<Collider2D>();
         health = GetComponent<Health>();
+        inputReader = GetComponent<PlayerInputReader>();
         movementPhysics = new PlayerMovementPhysics(rigidBody, transform);
         locomotionState = new PlayerLocomotionState(this);
         attackState = new PlayerAttackState(this);
@@ -76,6 +79,15 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     {
         GameManager.Instance?.RegisterPlayer(health);
         EventManager.TriggerPlayerLifeChanged(health.Life, health.Life);
+    }
+
+    private void OnDestroy()
+    {
+        if (health != null)
+        {
+            health.OnLifeChanged -= OnLifeChanged;
+            health.OnDeath -= OnDeath;
+        }
     }
 
     private void Update()
@@ -116,7 +128,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     public bool CanStartAttack()
     {
-        return Input.GetKeyUp(KeyCode.Z) && onFloor;
+        return inputReader.AttackReleased && onFloor;
     }
 
     public void TickLocomotion()
@@ -133,7 +145,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void HandleMovement()
     {
-        float inputX = Input.GetAxis("Horizontal");
+        float inputX = inputReader.MoveX;
         movementPhysics.MoveHorizontally(
             inputX,
             MoveSpeed,
@@ -152,7 +164,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void UpdateJumpTimers()
     {
-        movementPhysics.UpdateJumpBuffer(Input.GetKeyDown(KeyCode.Space), jumpBufferTime);
+        movementPhysics.UpdateJumpBuffer(inputReader.JumpPressed, jumpBufferTime);
     }
 
     private void TryJump()
@@ -170,8 +182,8 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void ApplyJumpGravity()
     {
         movementPhysics.ApplyJumpGravity(
-            Input.GetKey(KeyCode.Space),
-            Input.GetKeyUp(KeyCode.Space),
+            inputReader.JumpHeld,
+            inputReader.JumpReleased,
             jumpCutMultiplier,
             fallGravityMultiplier,
             lowJumpGravityMultiplier,
