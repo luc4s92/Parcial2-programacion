@@ -9,13 +9,27 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [Header("Movimiento")]
     [SerializeField] private float jumpForce = 8f;
     [SerializeField] private float playerSpeed = 5f;
+    [SerializeField] private float groundAcceleration = 45f;
+    [SerializeField] private float groundDeceleration = 55f;
+    [SerializeField] private float airAcceleration = 24f;
+    [SerializeField] private float airDeceleration = 12f;
+    [Range(0f, 1f)]
+    [SerializeField] private float airControlMultiplier = 0.7f;
     [SerializeField] private float longitudRaycast = 0.1f;
     [SerializeField] private LayerMask floorLayer;
+
+    [Header("Salto")]
+    [SerializeField] private float coyoteTime = 0.12f;
+    [SerializeField] private float jumpBufferTime = 0.12f;
+    [SerializeField] private float jumpCutMultiplier = 0.45f;
+    [SerializeField] private float fallGravityMultiplier = 2.2f;
+    [SerializeField] private float lowJumpGravityMultiplier = 1.6f;
+    [SerializeField] private float maxFallSpeed = 14f;
 
     [Header("Combate")]
     [SerializeField] private float collitionForce = 6f;
     [SerializeField] private float knockbackDuration = 0.25f;
-    private bool attackHit;
+    [SerializeField] private float attackBrakeDeceleration = 90f;
 
     [Header("Referencias")]
     [SerializeField] private Animator animator;
@@ -24,6 +38,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private Rigidbody2D rigidBody;
     private Collider2D myCollider;
     private Health health;
+    private PlayerMovementPhysics movementPhysics;
     private bool onFloor;
     private bool atack;
     private bool isKnockback;
@@ -40,6 +55,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         rigidBody = GetComponent<Rigidbody2D>();
         myCollider = GetComponent<Collider2D>();
         health = GetComponent<Health>();
+        movementPhysics = new PlayerMovementPhysics(rigidBody, transform);
 
         health.OnLifeChanged += OnLifeChanged;
         health.OnDeath += OnDeath;
@@ -58,17 +74,18 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     {
         if (health.IsAlive && !isKnockback)
         {
+            movementPhysics.UpdateGroundState(longitudRaycast, floorLayer, coyoteTime);
+            onFloor = movementPhysics.IsGrounded;
+
             if (!atack)
             {
-                Movement();
-
-                RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, longitudRaycast, floorLayer);
-                onFloor = hit.collider != null;
-
-                if (onFloor && Input.GetKeyDown(KeyCode.Space))
-                {
-                    rigidBody.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-                }
+                HandleMovement();
+                HandleJump();
+            }
+            else
+            {
+                ApplyAttackBrake();
+                ApplyJumpGravity();
             }
 
             if (Input.GetKeyUp(KeyCode.Z) && !atack && onFloor)
@@ -82,21 +99,66 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         animator.SetBool("atack", atack);
     }
 
-    private void Movement()
+    private void HandleMovement()
     {
         float inputX = Input.GetAxis("Horizontal");
-        rigidBody.linearVelocity = new Vector2(inputX * MoveSpeed, rigidBody.linearVelocity.y);
+        movementPhysics.MoveHorizontally(
+            inputX,
+            MoveSpeed,
+            groundAcceleration,
+            groundDeceleration,
+            airAcceleration,
+            airDeceleration,
+            airControlMultiplier
+        );
 
-        animator.SetFloat("movement", Mathf.Abs(inputX * MoveSpeed));
+        animator.SetFloat("movement", movementPhysics.HorizontalSpeed);
 
         if (inputX < 0) transform.localScale = new Vector3(-1, 1, 1);
         if (inputX > 0) transform.localScale = new Vector3(1, 1, 1);
     }
 
+    private void UpdateJumpTimers()
+    {
+        movementPhysics.UpdateJumpBuffer(Input.GetKeyDown(KeyCode.Space), jumpBufferTime);
+    }
+
+    private void TryJump()
+    {
+        movementPhysics.TryJump(jumpForce);
+    }
+
+    private void HandleJump()
+    {
+        UpdateJumpTimers();
+        TryJump();
+        ApplyJumpGravity();
+    }
+
+    private void ApplyJumpGravity()
+    {
+        movementPhysics.ApplyJumpGravity(
+            Input.GetKey(KeyCode.Space),
+            Input.GetKeyUp(KeyCode.Space),
+            jumpCutMultiplier,
+            fallGravityMultiplier,
+            lowJumpGravityMultiplier,
+            maxFallSpeed
+        );
+    }
+
+    private void ApplyAttackBrake()
+    {
+        if (!onFloor) return;
+
+        movementPhysics.Brake(attackBrakeDeceleration);
+        animator.SetFloat("movement", movementPhysics.HorizontalSpeed);
+    }
+
     public void Atacking()
     {
         atack = true;
-        attackHit = false;
+        movementPhysics.ClearJumpBuffer();
         playerAudio?.PlaySwing();
     } 
     public void DeactivateAtacking() => atack = false;
@@ -132,7 +194,8 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         if (enemyCollider != null)
             Physics2D.IgnoreCollision(myCollider, enemyCollider, true);
 
-        rigidBody.linearVelocity = Vector2.zero;
+        movementPhysics.ResetGravity();
+        movementPhysics.Stop();
 
         Vector2 knockbackForce = new Vector2(direction.x * collitionForce, direction.y * (collitionForce * 0.5f));
         rigidBody.AddForce(knockbackForce, ForceMode2D.Impulse);
@@ -142,7 +205,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         if (enemyCollider != null)
             Physics2D.IgnoreCollision(myCollider, enemyCollider, false);
 
-        rigidBody.linearVelocity = Vector2.zero;
+        movementPhysics.Stop();
         isKnockback = false;
     }
 
@@ -165,7 +228,8 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void OnDeath()
     {
         animator.SetBool("death", true);
-        rigidBody.linearVelocity = Vector2.zero;
+        movementPhysics.ResetGravity();
+        movementPhysics.Stop();
         playerAudio?.PlayDeath();
     }
 
