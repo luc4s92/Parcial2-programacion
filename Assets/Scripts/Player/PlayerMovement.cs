@@ -36,43 +36,75 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerAudio playerAudio;
 
-    private Rigidbody2D rigidBody;
-    private Collider2D myCollider;
     private Health health;
-    private PlayerInputReader inputReader;
-    private PlayerMovementPhysics movementPhysics;
     private PlayerStateMachine stateMachine;
+    private PlayerLocomotion locomotion;
+    private PlayerAnimationController animationController;
+    private PlayerDamageReaction damageReaction;
+    private PlayerSpeedModifier speedModifier;
     private PlayerLocomotionState locomotionState;
     private PlayerAttackState attackState;
     private PlayerKnockbackState knockbackState;
     private PlayerDeadState deadState;
-    private bool onFloor;
-
-    // ---------------- POWER UPS ----------------
-    private float baseSpeed;                 // Velocidad original
-    public float MoveSpeed { get; private set; } // Velocidad actual
-    private Coroutine speedModifierRoutine;
-    private float currentMultiplier = 1f;
-    private float remainingDuration = 0f;
 
     private void Awake()
     {
-        rigidBody = GetComponent<Rigidbody2D>();
-        myCollider = GetComponent<Collider2D>();
+        Rigidbody2D rigidBody = GetComponent<Rigidbody2D>();
+        Collider2D playerCollider = GetComponent<Collider2D>();
+        PlayerInputReader inputReader = GetComponent<PlayerInputReader>();
         health = GetComponent<Health>();
-        inputReader = GetComponent<PlayerInputReader>();
-        movementPhysics = new PlayerMovementPhysics(rigidBody, transform);
-        locomotionState = new PlayerLocomotionState(this);
-        attackState = new PlayerAttackState(this);
-        knockbackState = new PlayerKnockbackState(this);
-        deadState = new PlayerDeadState(this);
+
+        PlayerMovementPhysics movementPhysics = new PlayerMovementPhysics(rigidBody, transform);
+        animationController = new PlayerAnimationController(animator, transform);
+        speedModifier = new PlayerSpeedModifier(playerSpeed);
+
+        PlayerLocomotion.Settings locomotionSettings = new PlayerLocomotion.Settings(
+            jumpForce: jumpForce,
+            groundAcceleration: groundAcceleration,
+            groundDeceleration: groundDeceleration,
+            airAcceleration: airAcceleration,
+            airDeceleration: airDeceleration,
+            airControlMultiplier: airControlMultiplier,
+            raycastLength: longitudRaycast,
+            floorLayer: floorLayer,
+            coyoteTime: coyoteTime,
+            jumpBufferTime: jumpBufferTime,
+            jumpCutMultiplier: jumpCutMultiplier,
+            fallGravityMultiplier: fallGravityMultiplier,
+            lowJumpGravityMultiplier: lowJumpGravityMultiplier,
+            maxFallSpeed: maxFallSpeed,
+            attackBrakeDeceleration: attackBrakeDeceleration
+        );
+
+        locomotion = new PlayerLocomotion(
+            inputReader,
+            movementPhysics,
+            animationController,
+            speedModifier,
+            locomotionSettings
+        );
+        damageReaction = new PlayerDamageReaction(
+            rigidBody,
+            playerCollider,
+            movementPhysics,
+            animationController,
+            playerAudio,
+            collitionForce
+        );
+
+        attackState = new PlayerAttackState(locomotion, animationController, playerAudio);
+        deadState = new PlayerDeadState(damageReaction);
+        locomotionState = new PlayerLocomotionState(inputReader, locomotion, ChangeToAttackState);
+        knockbackState = new PlayerKnockbackState(
+            damageReaction,
+            knockbackDuration,
+            ChangeToLocomotionState
+        );
         stateMachine = new PlayerStateMachine(locomotionState);
 
         health.OnLifeChanged += OnLifeChanged;
+        health.OnDamaged += OnDamaged;
         health.OnDeath += OnDeath;
-
-        baseSpeed = playerSpeed; // Guardamos velocidad original
-        MoveSpeed = baseSpeed;
     }
 
     private void Start()
@@ -81,36 +113,34 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         EventManager.TriggerPlayerLifeChanged(health.Life, health.Life);
     }
 
-    private void OnDestroy()
-    {
-        if (health != null)
-        {
-            health.OnLifeChanged -= OnLifeChanged;
-            health.OnDeath -= OnDeath;
-        }
-    }
-
     private void Update()
     {
+        speedModifier.Tick(Time.deltaTime);
+
         if (health.IsAlive)
         {
-            movementPhysics.UpdateGroundState(longitudRaycast, floorLayer, coyoteTime);
-            onFloor = movementPhysics.IsGrounded;
-
+            locomotion.UpdateGroundState();
             stateMachine.Tick();
         }
 
-        animator.SetBool("onfloor", onFloor);
+        animationController.SetGrounded(locomotion.IsGrounded);
     }
 
-    public float KnockbackDuration => knockbackDuration;
+    private void OnDestroy()
+    {
+        if (health == null) return;
 
-    public void ChangeToLocomotionState()
+        health.OnLifeChanged -= OnLifeChanged;
+        health.OnDamaged -= OnDamaged;
+        health.OnDeath -= OnDeath;
+    }
+
+    private void ChangeToLocomotionState()
     {
         stateMachine.ChangeState(locomotionState);
     }
 
-    public void ChangeToAttackState()
+    private void ChangeToAttackState()
     {
         stateMachine.ChangeState(attackState);
     }
@@ -121,234 +151,79 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         stateMachine.ChangeState(knockbackState);
     }
 
-    private void ChangeToDeadState()
-    {
-        stateMachine.ChangeState(deadState);
-    }
-
-    public bool CanStartAttack()
-    {
-        return inputReader.AttackReleased && onFloor;
-    }
-
-    public void TickLocomotion()
-    {
-        HandleMovement();
-        HandleJump();
-    }
-
-    public void TickAttack()
-    {
-        ApplyAttackBrake();
-        ApplyJumpGravity();
-    }
-
-    private void HandleMovement()
-    {
-        float inputX = inputReader.MoveX;
-        movementPhysics.MoveHorizontally(
-            inputX,
-            MoveSpeed,
-            groundAcceleration,
-            groundDeceleration,
-            airAcceleration,
-            airDeceleration,
-            airControlMultiplier
-        );
-
-        animator.SetFloat("movement", movementPhysics.HorizontalSpeed);
-
-        if (inputX < 0) transform.localScale = new Vector3(-1, 1, 1);
-        if (inputX > 0) transform.localScale = new Vector3(1, 1, 1);
-    }
-
-    private void UpdateJumpTimers()
-    {
-        movementPhysics.UpdateJumpBuffer(inputReader.JumpPressed, jumpBufferTime);
-    }
-
-    private void TryJump()
-    {
-        movementPhysics.TryJump(jumpForce);
-    }
-
-    private void HandleJump()
-    {
-        UpdateJumpTimers();
-        TryJump();
-        ApplyJumpGravity();
-    }
-
-    private void ApplyJumpGravity()
-    {
-        movementPhysics.ApplyJumpGravity(
-            inputReader.JumpHeld,
-            inputReader.JumpReleased,
-            jumpCutMultiplier,
-            fallGravityMultiplier,
-            lowJumpGravityMultiplier,
-            maxFallSpeed
-        );
-    }
-
-    private void ApplyAttackBrake()
-    {
-        if (!onFloor) return;
-
-        movementPhysics.Brake(attackBrakeDeceleration);
-        animator.SetFloat("movement", movementPhysics.HorizontalSpeed);
-    }
-
-    public void Atacking()
-    {
-        ChangeToAttackState();
-    }
-
-    public void BeginAttack()
-    {
-        movementPhysics.ClearJumpBuffer();
-        animator.SetBool("atack", true);
-        playerAudio?.PlaySwing();
-    }
-
-    public void EndAttack()
-    {
-        animator.SetBool("atack", false);
-    }
-
-    public void DeactivateAtacking()
-    {
-        if (stateMachine.IsInState(attackState))
-            ChangeToLocomotionState();
-    }
-
-    // ----------------- Danio y rebote -----------------
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!health.IsAlive || stateMachine.IsInState(knockbackState) || stateMachine.IsInState(deadState)) return;
-
-        if (collision.collider.CompareTag("Enemy"))
+        if (!health.IsAlive ||
+            stateMachine.IsInState(knockbackState) ||
+            stateMachine.IsInState(deadState) ||
+            !collision.collider.CompareTag("Enemy"))
         {
-            Debug.Log("[PlayerMovement] Colision con Enemy");
-
-            Vector2 attackDir = new Vector2(
-                transform.position.x - collision.transform.position.x,
-                0.5f
-            ).normalized;
-
-            TakeDamage(1, attackDir);
-
-            if (health.IsAlive)
-            {
-                playerAudio?.PlayDamage();
-                ChangeToKnockbackState(attackDir, collision.collider);
-            }
+            return;
         }
-    }
 
-    public void BeginKnockback(Vector2 direction, Collider2D enemyCollider)
-    {
-        if (enemyCollider != null)
-            Physics2D.IgnoreCollision(myCollider, enemyCollider, true);
+        Vector2 attackDirection = new Vector2(
+            transform.position.x - collision.transform.position.x,
+            0.5f
+        ).normalized;
 
-        movementPhysics.ResetGravity();
-        movementPhysics.Stop();
-
-        Vector2 knockbackForce = new Vector2(direction.x * collitionForce, direction.y * (collitionForce * 0.5f));
-        rigidBody.AddForce(knockbackForce, ForceMode2D.Impulse);
-    }
-
-    public void EndKnockback(Collider2D enemyCollider)
-    {
-        if (enemyCollider != null)
-            Physics2D.IgnoreCollision(myCollider, enemyCollider, false);
-
-        movementPhysics.Stop();
-    }
-
-    private void OnLifeChanged(int currentLife, int maxLife, Vector2 attackDirection)
-    {
-        EventManager.TriggerPlayerLifeChanged(currentLife, maxLife);
-
+        TakeDamage(1, attackDirection);
         if (!health.IsAlive) return;
 
-        animator.SetBool("damage", true);
+        ChangeToKnockbackState(attackDirection, collision.collider);
+    }
+
+    private void OnLifeChanged(int currentLife, int maxLife)
+    {
+        EventManager.TriggerPlayerLifeChanged(currentLife, maxLife);
+    }
+
+    private void OnDamaged(Vector2 attackDirection)
+    {
+        if (!health.IsAlive) return;
+
+        damageReaction.PlayDamageFeedback();
+        damageReaction.ShowDamageAnimation();
         StartCoroutine(ResetDamageFlag());
     }
 
     private IEnumerator ResetDamageFlag()
     {
         yield return new WaitForSeconds(0.2f);
-        animator.SetBool("damage", false);
+        OnDamageAnimationFinished();
     }
 
     private void OnDeath()
     {
-        ChangeToDeadState();
+        stateMachine.ChangeState(deadState);
     }
 
-    public void BeginDeath()
+    public void OnAttackAnimationFinished()
     {
-        animator.SetBool("death", true);
-        movementPhysics.ResetGravity();
-        movementPhysics.Stop();
-        playerAudio?.PlayDeath();
+        if (stateMachine.IsInState(attackState))
+            ChangeToLocomotionState();
     }
 
-    private void OnDrawGizmos()
+    public void OnDamageAnimationFinished()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(transform.position, transform.position + Vector3.down * longitudRaycast);
+        damageReaction?.HideDamageAnimation();
     }
-
-    // ----------- Power-ups de velocidad -----------
 
     public void ApplySpeedModifier(float multiplier, float duration)
     {
-        if (speedModifierRoutine != null)
-        {
-            // Si ya hay un efecto activo, extender tiempo
-            remainingDuration += duration;
-            Debug.Log($"[SpeedModifier] Se extendio duracion, tiempo restante: {remainingDuration:F2}s");
-        }
-        else
-        {
-            // Nuevo efecto
-            currentMultiplier = multiplier;
-            remainingDuration = duration;
-
-            MoveSpeed = baseSpeed * currentMultiplier;
-            speedModifierRoutine = StartCoroutine(SpeedModifier());
-
-            Debug.Log($"[SpeedModifier] Velocidad modificada: {MoveSpeed} (x{multiplier}) durante {duration}s");
-        }
+        speedModifier.Apply(multiplier, duration);
     }
 
-    private IEnumerator SpeedModifier()
-    {
-        while (remainingDuration > 0)
-        {
-            remainingDuration -= Time.deltaTime;
-            yield return null;
-        }
-
-        // Restaurar velocidad original
-        MoveSpeed = baseSpeed;
-        currentMultiplier = 1f;
-        speedModifierRoutine = null;
-
-        Debug.Log($"[SpeedModifier] Efecto terminado -> Velocidad restaurada a {MoveSpeed}");
-    }
-
-    // ========================
-    //   Implementacion de IDamageable
-    // ========================
     public int Life => health.Life;
     public bool IsAlive => health.IsAlive;
 
     public void TakeDamage(int damage, Vector2 attackDirection)
     {
         health.TakeDamage(damage, attackDirection);
-        
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(transform.position, transform.position + Vector3.down * longitudRaycast);
     }
 }

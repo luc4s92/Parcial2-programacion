@@ -18,7 +18,7 @@ public class HealthAudio : MonoBehaviour
         playerHealth.OnLifeChanged -= UpdateAudioBasedOnHealth;
     }
 
-    private void UpdateAudioBasedOnHealth(int currentLife, int maxLife, Vector2 dir)
+    private void UpdateAudioBasedOnHealth(int currentLife, int maxLife)
     {
         float normalized = (float)currentLife / maxLife;
 

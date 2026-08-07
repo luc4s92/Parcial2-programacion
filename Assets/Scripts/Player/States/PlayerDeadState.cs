@@ -1,22 +1,22 @@
-public sealed class PlayerDeadState : IPlayerState
+internal sealed class PlayerDeadState : IPlayerState
 {
-    private readonly PlayerMovement player;
+    private readonly PlayerDamageReaction damageReaction;
 
-    public PlayerDeadState(PlayerMovement player)
+    internal PlayerDeadState(PlayerDamageReaction damageReaction)
     {
-        this.player = player;
+        this.damageReaction = damageReaction;
     }
 
-    public void Enter()
+    void IPlayerState.Enter()
     {
-        player.BeginDeath();
+        damageReaction.BeginDeath();
     }
 
-    public void Tick()
+    void IPlayerState.Tick()
     {
     }
 
-    public void Exit()
+    void IPlayerState.Exit()
     {
     }
 }

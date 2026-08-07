@@ -1,30 +1,28 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerAudio : MonoBehaviour
 {
-   [SerializeField] private AudioSource swingSFX;
-   [SerializeField] private AudioSource hitSFX;
-   [SerializeField] private AudioSource damageSFX;
-   [SerializeField] private AudioSource deathSFX;
+    [SerializeField] private AudioSource swingSFX;
+    [SerializeField] private AudioSource hitSFX;
+    [SerializeField] private AudioSource damageSFX;
+    [SerializeField] private AudioSource deathSFX;
 
-    public void PlaySwing()
+    internal void PlaySwing()
     {
         swingSFX?.Play();
     }
 
-    public void PlayHit()
+    internal void PlayHit()
     {
         hitSFX?.Play();
     }
 
-    public void PlayDamage()
+    internal void PlayDamage()
     {
         damageSFX?.Play();
     }
 
-    public void PlayDeath()
+    internal void PlayDeath()
     {
         if (deathSFX != null)
         {
@@ -34,7 +32,5 @@ public class PlayerAudio : MonoBehaviour
 
         damageSFX?.Play();
     }
-
-  
 
 }

@@ -1,4 +1,4 @@
-public interface IPlayerState
+internal interface IPlayerState
 {
     void Enter();
     void Tick();

@@ -1,29 +1,29 @@
-public sealed class PlayerStateMachine
+internal sealed class PlayerStateMachine
 {
-    public IPlayerState CurrentState { get; private set; }
+    private IPlayerState currentState;
 
-    public PlayerStateMachine(IPlayerState initialState)
+    internal PlayerStateMachine(IPlayerState initialState)
     {
-        CurrentState = initialState;
-        CurrentState.Enter();
+        currentState = initialState;
+        currentState.Enter();
     }
 
-    public void ChangeState(IPlayerState nextState)
+    internal void ChangeState(IPlayerState nextState)
     {
-        if (nextState == null || nextState == CurrentState) return;
+        if (nextState == null || nextState == currentState) return;
 
-        CurrentState.Exit();
-        CurrentState = nextState;
-        CurrentState.Enter();
+        currentState.Exit();
+        currentState = nextState;
+        currentState.Enter();
     }
 
-    public void Tick()
+    internal void Tick()
     {
-        CurrentState.Tick();
+        currentState.Tick();
     }
 
-    public bool IsInState(IPlayerState state)
+    internal bool IsInState(IPlayerState state)
     {
-        return CurrentState == state;
+        return currentState == state;
     }
 }

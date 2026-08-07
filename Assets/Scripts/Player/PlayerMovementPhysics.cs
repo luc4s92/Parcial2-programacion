@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public sealed class PlayerMovementPhysics
+internal sealed class PlayerMovementPhysics
 {
     private readonly Rigidbody2D rigidBody;
     private readonly Transform transform;
@@ -9,17 +9,17 @@ public sealed class PlayerMovementPhysics
     private float coyoteCounter;
     private float jumpBufferCounter;
 
-    public bool IsGrounded { get; private set; }
-    public float HorizontalSpeed => Mathf.Abs(rigidBody.linearVelocity.x);
+    internal bool IsGrounded { get; private set; }
+    internal float HorizontalSpeed => Mathf.Abs(rigidBody.linearVelocity.x);
 
-    public PlayerMovementPhysics(Rigidbody2D rigidBody, Transform transform)
+    internal PlayerMovementPhysics(Rigidbody2D rigidBody, Transform transform)
     {
         this.rigidBody = rigidBody;
         this.transform = transform;
         defaultGravityScale = rigidBody.gravityScale;
     }
 
-    public void UpdateGroundState(float raycastLength, LayerMask floorLayer, float coyoteTime)
+    internal void UpdateGroundState(float raycastLength, LayerMask floorLayer, float coyoteTime)
     {
         RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, raycastLength, floorLayer);
         IsGrounded = hit.collider != null;
@@ -30,7 +30,7 @@ public sealed class PlayerMovementPhysics
             coyoteCounter -= Time.deltaTime;
     }
 
-    public void UpdateJumpBuffer(bool jumpPressed, float jumpBufferTime)
+    internal void UpdateJumpBuffer(bool jumpPressed, float jumpBufferTime)
     {
         if (jumpPressed)
             jumpBufferCounter = jumpBufferTime;
@@ -38,12 +38,12 @@ public sealed class PlayerMovementPhysics
             jumpBufferCounter -= Time.deltaTime;
     }
 
-    public void ClearJumpBuffer()
+    internal void ClearJumpBuffer()
     {
         jumpBufferCounter = 0f;
     }
 
-    public void MoveHorizontally(
+    internal void MoveHorizontally(
         float inputX,
         float moveSpeed,
         float groundAcceleration,
@@ -69,7 +69,7 @@ public sealed class PlayerMovementPhysics
         rigidBody.linearVelocity = new Vector2(horizontalVelocity, rigidBody.linearVelocity.y);
     }
 
-    public void TryJump(float jumpForce)
+    internal void TryJump(float jumpForce)
     {
         if (jumpBufferCounter <= 0f || coyoteCounter <= 0f) return;
 
@@ -80,7 +80,7 @@ public sealed class PlayerMovementPhysics
         coyoteCounter = 0f;
     }
 
-    public void ApplyJumpGravity(
+    internal void ApplyJumpGravity(
         bool jumpHeld,
         bool jumpReleased,
         float jumpCutMultiplier,
@@ -118,7 +118,7 @@ public sealed class PlayerMovementPhysics
         }
     }
 
-    public void Brake(float deceleration)
+    internal void Brake(float deceleration)
     {
         float horizontalVelocity = Mathf.MoveTowards(
             rigidBody.linearVelocity.x,
@@ -129,12 +129,12 @@ public sealed class PlayerMovementPhysics
         rigidBody.linearVelocity = new Vector2(horizontalVelocity, rigidBody.linearVelocity.y);
     }
 
-    public void ResetGravity()
+    internal void ResetGravity()
     {
         rigidBody.gravityScale = defaultGravityScale;
     }
 
-    public void Stop()
+    internal void Stop()
     {
         rigidBody.linearVelocity = Vector2.zero;
     }

@@ -1,25 +1,34 @@
-public sealed class PlayerLocomotionState : IPlayerState
+using System;
+
+internal sealed class PlayerLocomotionState : IPlayerState
 {
-    private readonly PlayerMovement player;
+    private readonly PlayerInputReader inputReader;
+    private readonly PlayerLocomotion locomotion;
+    private readonly Action requestAttack;
 
-    public PlayerLocomotionState(PlayerMovement player)
+    internal PlayerLocomotionState(
+        PlayerInputReader inputReader,
+        PlayerLocomotion locomotion,
+        Action requestAttack)
     {
-        this.player = player;
+        this.inputReader = inputReader;
+        this.locomotion = locomotion;
+        this.requestAttack = requestAttack;
     }
 
-    public void Enter()
+    void IPlayerState.Enter()
     {
     }
 
-    public void Tick()
+    void IPlayerState.Tick()
     {
-        player.TickLocomotion();
+        locomotion.Tick();
 
-        if (player.CanStartAttack())
-            player.ChangeToAttackState();
+        if (inputReader.AttackReleased && locomotion.IsGrounded)
+            requestAttack();
     }
 
-    public void Exit()
+    void IPlayerState.Exit()
     {
     }
 }

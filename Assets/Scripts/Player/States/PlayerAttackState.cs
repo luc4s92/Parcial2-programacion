@@ -1,24 +1,33 @@
-public sealed class PlayerAttackState : IPlayerState
+internal sealed class PlayerAttackState : IPlayerState
 {
-    private readonly PlayerMovement player;
+    private readonly PlayerLocomotion locomotion;
+    private readonly PlayerAnimationController animationController;
+    private readonly PlayerAudio playerAudio;
 
-    public PlayerAttackState(PlayerMovement player)
+    internal PlayerAttackState(
+        PlayerLocomotion locomotion,
+        PlayerAnimationController animationController,
+        PlayerAudio playerAudio)
     {
-        this.player = player;
+        this.locomotion = locomotion;
+        this.animationController = animationController;
+        this.playerAudio = playerAudio;
     }
 
-    public void Enter()
+    void IPlayerState.Enter()
     {
-        player.BeginAttack();
+        locomotion.ClearJumpBuffer();
+        animationController.SetAttacking(true);
+        playerAudio?.PlaySwing();
     }
 
-    public void Tick()
+    void IPlayerState.Tick()
     {
-        player.TickAttack();
+        locomotion.TickDuringAttack();
     }
 
-    public void Exit()
+    void IPlayerState.Exit()
     {
-        player.EndAttack();
+        animationController.SetAttacking(false);
     }
 }

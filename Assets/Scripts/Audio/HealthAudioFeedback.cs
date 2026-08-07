@@ -26,7 +26,7 @@ public class HealthAudioFeedback : MonoBehaviour
         }
     }
 
-    private void UpdateAudioBasedOnHealth(int currentLife, int maxLife, Vector2 dir)
+    private void UpdateAudioBasedOnHealth(int currentLife, int maxLife)
     {
         // Convertir vida a rango 0..1
         float normalized = (float)currentLife / maxLife;

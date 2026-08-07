@@ -14,11 +14,11 @@ public sealed class PlayerInputReader : MonoBehaviour
     private InputAction jumpAction;
     private InputAction attackAction;
 
-    public float MoveX => Mathf.Clamp(moveAction.ReadValue<float>(), -1f, 1f);
-    public bool JumpPressed => jumpAction.WasPressedThisFrame();
-    public bool JumpHeld => jumpAction.IsPressed();
-    public bool JumpReleased => jumpAction.WasReleasedThisFrame();
-    public bool AttackReleased => attackAction.WasReleasedThisFrame();
+    internal float MoveX => Mathf.Clamp(moveAction.ReadValue<float>(), -1f, 1f);
+    internal bool JumpPressed => jumpAction.WasPressedThisFrame();
+    internal bool JumpHeld => jumpAction.IsPressed();
+    internal bool JumpReleased => jumpAction.WasReleasedThisFrame();
+    internal bool AttackReleased => attackAction.WasReleasedThisFrame();
 
     private void Awake()
     {
