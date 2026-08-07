@@ -39,9 +39,12 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private Collider2D myCollider;
     private Health health;
     private PlayerMovementPhysics movementPhysics;
+    private PlayerStateMachine stateMachine;
+    private PlayerLocomotionState locomotionState;
+    private PlayerAttackState attackState;
+    private PlayerKnockbackState knockbackState;
+    private PlayerDeadState deadState;
     private bool onFloor;
-    private bool atack;
-    private bool isKnockback;
 
     // ---------------- POWER UPS ----------------
     private float baseSpeed;                 // Velocidad original
@@ -56,6 +59,11 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         myCollider = GetComponent<Collider2D>();
         health = GetComponent<Health>();
         movementPhysics = new PlayerMovementPhysics(rigidBody, transform);
+        locomotionState = new PlayerLocomotionState(this);
+        attackState = new PlayerAttackState(this);
+        knockbackState = new PlayerKnockbackState(this);
+        deadState = new PlayerDeadState(this);
+        stateMachine = new PlayerStateMachine(locomotionState);
 
         health.OnLifeChanged += OnLifeChanged;
         health.OnDeath += OnDeath;
@@ -72,31 +80,55 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void Update()
     {
-        if (health.IsAlive && !isKnockback)
+        if (health.IsAlive)
         {
             movementPhysics.UpdateGroundState(longitudRaycast, floorLayer, coyoteTime);
             onFloor = movementPhysics.IsGrounded;
 
-            if (!atack)
-            {
-                HandleMovement();
-                HandleJump();
-            }
-            else
-            {
-                ApplyAttackBrake();
-                ApplyJumpGravity();
-            }
-
-            if (Input.GetKeyUp(KeyCode.Z) && !atack && onFloor)
-            {
-                Atacking();
-                
-            }
+            stateMachine.Tick();
         }
 
         animator.SetBool("onfloor", onFloor);
-        animator.SetBool("atack", atack);
+    }
+
+    public float KnockbackDuration => knockbackDuration;
+
+    public void ChangeToLocomotionState()
+    {
+        stateMachine.ChangeState(locomotionState);
+    }
+
+    public void ChangeToAttackState()
+    {
+        stateMachine.ChangeState(attackState);
+    }
+
+    private void ChangeToKnockbackState(Vector2 direction, Collider2D enemyCollider)
+    {
+        knockbackState.Configure(direction, enemyCollider);
+        stateMachine.ChangeState(knockbackState);
+    }
+
+    private void ChangeToDeadState()
+    {
+        stateMachine.ChangeState(deadState);
+    }
+
+    public bool CanStartAttack()
+    {
+        return Input.GetKeyUp(KeyCode.Z) && onFloor;
+    }
+
+    public void TickLocomotion()
+    {
+        HandleMovement();
+        HandleJump();
+    }
+
+    public void TickAttack()
+    {
+        ApplyAttackBrake();
+        ApplyJumpGravity();
     }
 
     private void HandleMovement()
@@ -157,16 +189,31 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     public void Atacking()
     {
-        atack = true;
+        ChangeToAttackState();
+    }
+
+    public void BeginAttack()
+    {
         movementPhysics.ClearJumpBuffer();
+        animator.SetBool("atack", true);
         playerAudio?.PlaySwing();
-    } 
-    public void DeactivateAtacking() => atack = false;
+    }
+
+    public void EndAttack()
+    {
+        animator.SetBool("atack", false);
+    }
+
+    public void DeactivateAtacking()
+    {
+        if (stateMachine.IsInState(attackState))
+            ChangeToLocomotionState();
+    }
 
     // ----------------- Danio y rebote -----------------
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!health.IsAlive || isKnockback) return;
+        if (!health.IsAlive || stateMachine.IsInState(knockbackState) || stateMachine.IsInState(deadState)) return;
 
         if (collision.collider.CompareTag("Enemy"))
         {
@@ -182,15 +229,13 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             if (health.IsAlive)
             {
                 playerAudio?.PlayDamage();
-                StartCoroutine(ApplyKnockback(attackDir, collision.collider));
+                ChangeToKnockbackState(attackDir, collision.collider);
             }
         }
     }
 
-    private IEnumerator ApplyKnockback(Vector2 direction, Collider2D enemyCollider)
+    public void BeginKnockback(Vector2 direction, Collider2D enemyCollider)
     {
-        isKnockback = true;
-
         if (enemyCollider != null)
             Physics2D.IgnoreCollision(myCollider, enemyCollider, true);
 
@@ -199,14 +244,14 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
         Vector2 knockbackForce = new Vector2(direction.x * collitionForce, direction.y * (collitionForce * 0.5f));
         rigidBody.AddForce(knockbackForce, ForceMode2D.Impulse);
+    }
 
-        yield return new WaitForSeconds(knockbackDuration);
-
+    public void EndKnockback(Collider2D enemyCollider)
+    {
         if (enemyCollider != null)
             Physics2D.IgnoreCollision(myCollider, enemyCollider, false);
 
         movementPhysics.Stop();
-        isKnockback = false;
     }
 
     private void OnLifeChanged(int currentLife, int maxLife, Vector2 attackDirection)
@@ -226,6 +271,11 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     }
 
     private void OnDeath()
+    {
+        ChangeToDeadState();
+    }
+
+    public void BeginDeath()
     {
         animator.SetBool("death", true);
         movementPhysics.ResetGravity();
