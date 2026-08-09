@@ -7,6 +7,8 @@ internal sealed class PlayerAnimationController
     private static readonly int AttackParameter = Animator.StringToHash("atack");
     private static readonly int DamageParameter = Animator.StringToHash("damage");
     private static readonly int DeathParameter = Animator.StringToHash("death");
+    private static readonly int JumpState = Animator.StringToHash("Base Layer.jump");
+    private static readonly int FallState = Animator.StringToHash("Base Layer.fall");
 
     private readonly Animator animator;
     private readonly Transform playerTransform;
@@ -25,6 +27,16 @@ internal sealed class PlayerAnimationController
     internal void SetMovement(float horizontalSpeed)
     {
         animator.SetFloat(MovementParameter, horizontalSpeed);
+    }
+
+    internal void PlayJump()
+    {
+        animator.Play(JumpState, 0, 0f);
+    }
+
+    internal void PlayFall()
+    {
+        animator.Play(FallState, 0, 0f);
     }
 
     internal void FaceMovement(float horizontalInput)

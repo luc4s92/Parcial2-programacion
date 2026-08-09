@@ -1,48 +1,45 @@
 using System;
 using UnityEngine;
 
-internal sealed class PlayerKnockbackState : IPlayerState
+internal sealed class PlayerKnockbackState : IState
 {
     private readonly PlayerDamageReaction damageReaction;
     private readonly float duration;
-    private readonly Action requestLocomotion;
+    private readonly Action resolveLocomotion;
     private Vector2 direction;
-    private Collider2D enemyCollider;
     private float elapsedTime;
 
     internal PlayerKnockbackState(
         PlayerDamageReaction damageReaction,
         float duration,
-        Action requestLocomotion)
+        Action resolveLocomotion)
     {
         this.damageReaction = damageReaction;
         this.duration = duration;
-        this.requestLocomotion = requestLocomotion;
+        this.resolveLocomotion = resolveLocomotion;
     }
 
-    internal void Configure(Vector2 direction, Collider2D enemyCollider)
+    internal void Configure(Vector2 direction)
     {
         this.direction = direction;
-        this.enemyCollider = enemyCollider;
     }
 
-    void IPlayerState.Enter()
+    void IState.Enter()
     {
         elapsedTime = 0f;
-        damageReaction.BeginKnockback(direction, enemyCollider);
+        damageReaction.BeginKnockback(direction);
     }
 
-    void IPlayerState.Tick()
+    void IState.Tick()
     {
         elapsedTime += Time.deltaTime;
 
         if (elapsedTime >= duration)
-            requestLocomotion();
+            resolveLocomotion();
     }
 
-    void IPlayerState.Exit()
+    void IState.Exit()
     {
-        damageReaction.EndKnockback(enemyCollider);
-        enemyCollider = null;
+        damageReaction.EndKnockback();
     }
 }

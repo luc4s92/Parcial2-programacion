@@ -1,14 +1,14 @@
-internal sealed class PlayerStateMachine
+internal sealed class StateMachine
 {
-    private IPlayerState currentState;
+    private IState currentState;
 
-    internal PlayerStateMachine(IPlayerState initialState)
+    internal StateMachine(IState initialState)
     {
         currentState = initialState;
         currentState.Enter();
     }
 
-    internal void ChangeState(IPlayerState nextState)
+    internal void ChangeState(IState nextState)
     {
         if (nextState == null || nextState == currentState) return;
 
@@ -22,7 +22,7 @@ internal sealed class PlayerStateMachine
         currentState.Tick();
     }
 
-    internal bool IsInState(IPlayerState state)
+    internal bool IsInState(IState state)
     {
         return currentState == state;
     }

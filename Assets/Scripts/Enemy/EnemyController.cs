@@ -1,152 +1,232 @@
+using System.Collections;
 using UnityEngine;
 
-public abstract class EnemyController : MonoBehaviour, IEnemyContext
+[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Collider2D))]
+[RequireComponent(typeof(Animator))]
+public abstract class EnemyController : MonoBehaviour
 {
     [Header("Stats")]
     [SerializeField] protected Transform player;
-    [SerializeField] protected float detectionRadius = 5.0f;
-    [SerializeField] protected float speed = 0.5f;
+    [SerializeField] protected float detectionRadius = 5f;
+    [SerializeField] protected float speed = 1.5f;
     [SerializeField] protected int life = 3;
+    [SerializeField] private bool facesRightByDefault;
 
-    [Header("State")]
-    protected bool takeDamage;
-    protected bool isDead;
-    protected bool isPlayerAlive = true;
+    [Header("Damage reaction")]
+    [SerializeField] private float knockbackForce = 3f;
+    [SerializeField] private float hitRecoveryDuration = 0.6f;
+    [SerializeField] private float bodyCleanupDelay = 1f;
 
     [Header("Components")]
-    protected Rigidbody2D rigidBody;
-    [SerializeField] protected Animator animator;
+    [SerializeField] private Animator animator;
     [SerializeField] private EnemyAudio enemyAudio;
-    protected SpriteRenderer sprite;
 
-    // Estrategia de movimiento
-    protected IEnemyStrategy strategy;
+    private StateMachine stateMachine;
+    private EnemyHealth enemyHealth;
+    private EnemyHitState hitState;
+    private EnemyDeadState deadState;
+    private Health playerHealth;
+    private bool bodyDeletionRequested;
 
-    // Exposición para Strategy
-    public Transform Transform => transform;
-    public Rigidbody2D Rigidbody => rigidBody;
-    public float Speed => speed;
-    public Transform Player => player;
-    public float DetectionRadius => detectionRadius;
-    public bool IsTakingDamage => takeDamage;
-    public bool IsAlive => !isDead;
-    public bool IsPlayerAlive => isPlayerAlive;
+    private protected EnemyMovement Movement { get; private set; }
+    private protected EnemyAnimationController AnimationController { get; private set; }
+    protected Transform Player => player;
 
-    // ---------------- UNITY ----------------
+    public bool IsAlive => enemyHealth == null || enemyHealth.IsAlive;
+    public int Life => enemyHealth?.CurrentLife ?? life;
+
+    protected virtual void Awake()
+    {
+        Rigidbody2D rigidBody = GetComponent<Rigidbody2D>();
+        if (animator == null)
+            animator = GetComponent<Animator>();
+
+        ResolvePlayerReference();
+
+        Movement = new EnemyMovement(rigidBody, transform, speed, facesRightByDefault);
+        AnimationController = new EnemyAnimationController(animator);
+        enemyHealth = new EnemyHealth(life);
+
+        EnemyDamageReaction damageReaction = new EnemyDamageReaction(
+            Movement,
+            AnimationController,
+            enemyAudio,
+            knockbackForce
+        );
+
+        hitState = new EnemyHitState(
+            damageReaction,
+            hitRecoveryDuration,
+            ResolveBehaviourState
+        );
+        deadState = new EnemyDeadState(damageReaction, HandleDeath);
+        stateMachine = new StateMachine(CreateInitialState());
+    }
+
     protected virtual void Start()
     {
-        rigidBody = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-        sprite = GetComponent<SpriteRenderer>();
-
         if (player != null)
         {
-            Health playerHealth = player.GetComponent<Health>();
+            playerHealth = player.GetComponent<Health>();
             if (playerHealth != null)
                 playerHealth.OnDeath += HandlePlayerDeath;
         }
 
-        if (GameManager.Instance != null)
-            GameManager.Instance.RegisterEnemy(this);
+        GameManager.Instance?.RegisterEnemy(this);
     }
 
     protected virtual void Update()
     {
-        animator.SetBool("damage", takeDamage);
-        animator.SetBool("death", isDead);
+        TickBehaviour(Time.deltaTime);
     }
 
     protected virtual void FixedUpdate()
     {
-        if (isDead || !isPlayerAlive)
-        {
-            if (rigidBody != null)
-                rigidBody.linearVelocity = Vector2.zero;
+        stateMachine.Tick();
+    }
 
-            animator.SetBool("onMovement", false);
+    protected virtual void OnDestroy()
+    {
+        if (playerHealth != null)
+            playerHealth.OnDeath -= HandlePlayerDeath;
+
+        GameManager.Instance?.UnregisterEnemy(this);
+    }
+
+    public virtual void TakingDamage(Vector2 sourcePosition, int totalDamage)
+    {
+        if (!IsAlive || IsInState(hitState) || IsInState(deadState))
+            return;
+
+        enemyHealth.TakeDamage(totalDamage);
+        if (!enemyHealth.IsAlive)
+        {
+            ChangeState(deadState);
             return;
         }
 
-        EnemyBehaviour();
-    }
+        Vector2 knockbackDirection = new Vector2(
+            transform.position.x - sourcePosition.x,
+            0.1f
+        ).normalized;
 
-    // ---------------- DAMAGE ----------------
-    public virtual void TakingDamage(Vector2 direction, int totalDamage)
-    {
-        if (!takeDamage && !isDead)
-        {
-            life -= totalDamage;
-            takeDamage = true;
-            enemyAudio?.PlayHit();
-            if (life <= 0)
-            {
-                isDead = true;
-                rigidBody.linearVelocity = Vector2.zero;
-                enemyAudio?.PlayDeath();
-
-                Debug.Log($"[{gameObject.name}] Muerto -> notificando al GameManager");
-
-                // Avisar al GameManager
-                if (GameManager.Instance != null)
-                    GameManager.Instance.EnemyKilled(this);
-
-                // Drop de item al morir
-                DropItem();
-            }
-            else
-            {
-                Vector2 rebound = new Vector2(transform.position.x - direction.x, 0.1f).normalized;
-                rigidBody.AddForce(rebound * 3f, ForceMode2D.Impulse);
-            }
-        }
+        hitState.Configure(knockbackDirection);
+        ChangeState(hitState);
     }
 
     public void DeactivateDamage()
     {
-        takeDamage = false;
-        if (rigidBody != null)
-            rigidBody.linearVelocity = Vector2.zero;
+        if (IsInState(hitState))
+            hitState.CompleteHit();
     }
 
     public void DeleteBody()
     {
-        if (GameManager.Instance != null)
-            GameManager.Instance.UnregisterEnemy(this);
+        if (bodyDeletionRequested) return;
 
+        bodyDeletionRequested = true;
+        GameManager.Instance?.UnregisterEnemy(this);
         Destroy(gameObject);
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    public void NotifyPlayerDeath()
     {
-        if (collision.CompareTag("Sword") && !isDead)
-        {
-            TakingDamage(new Vector2(collision.transform.position.x, 0), 1);
-        }
+        HandlePlayerDeath();
     }
 
-    private void OnDrawGizmosSelected()
+    private protected void ChangeState(IState nextState)
+    {
+        stateMachine.ChangeState(nextState);
+    }
+
+    private protected bool IsInState(IState state)
+    {
+        return stateMachine.IsInState(state);
+    }
+
+    protected virtual void TickBehaviour(float deltaTime)
+    {
+    }
+
+    protected virtual void HandleTriggerEnter(Collider2D collision)
+    {
+    }
+
+    protected virtual void HandleCollisionEnter(Collision2D collision)
+    {
+    }
+
+    protected virtual void HandleCollisionStay(Collision2D collision)
+    {
+    }
+
+    protected virtual void HandleTargetDisabled()
+    {
+    }
+
+    protected virtual void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
     }
 
+    private protected abstract IState CreateInitialState();
+    protected abstract void ResolveBehaviourState();
+    protected abstract void DropItem();
+
+    private void HandleDeath()
+    {
+        GameManager.Instance?.EnemyKilled(this);
+        DropItem();
+
+        if (bodyCleanupDelay <= 0f)
+            DeleteBody();
+        else
+            StartCoroutine(DeleteBodyAfterDelay());
+    }
+
+    private IEnumerator DeleteBodyAfterDelay()
+    {
+        yield return new WaitForSeconds(bodyCleanupDelay);
+        DeleteBody();
+    }
+
     private void HandlePlayerDeath()
     {
-        isPlayerAlive = false;
-        if (rigidBody != null)
-            rigidBody.linearVelocity = Vector2.zero;
+        HandleTargetDisabled();
+
+        if (IsAlive && stateMachine != null && !IsInState(hitState))
+            ResolveBehaviourState();
     }
 
-    public void NotifyPlayerDeath()
+    private void ResolvePlayerReference()
     {
-        isPlayerAlive = false;
-        if (rigidBody != null)
-            rigidBody.linearVelocity = Vector2.zero;
+        if (player != null) return;
+
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+            player = playerObject.transform;
     }
 
-    // ---------------- ABSTRACT ----------------
-    protected abstract void EnemyBehaviour();
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Sword"))
+        {
+            TakingDamage(collision.transform.position, 1);
+            return;
+        }
 
-    // Nuevo metodo abstracto: cada enemigo decide que item suelta
-    protected abstract void DropItem();
+        HandleTriggerEnter(collision);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        HandleCollisionEnter(collision);
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        HandleCollisionStay(collision);
+    }
 }

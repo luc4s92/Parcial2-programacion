@@ -62,6 +62,7 @@ internal sealed class PlayerLocomotion
     private readonly Settings settings;
 
     internal bool IsGrounded => movementPhysics.IsGrounded;
+    internal float VerticalSpeed => movementPhysics.VerticalSpeed;
 
     internal PlayerLocomotion(
         PlayerInputReader inputReader,
@@ -86,10 +87,45 @@ internal sealed class PlayerLocomotion
         );
     }
 
-    internal void Tick()
+    internal void EnterGrounded()
     {
-        MoveHorizontally();
-        HandleJump();
+        movementPhysics.ResetGravity();
+    }
+
+    internal bool TickGrounded()
+    {
+        TickMovementAndJumpBuffer();
+
+        bool jumped = TryJump();
+        if (!jumped)
+            movementPhysics.ResetGravity();
+
+        return jumped;
+    }
+
+    internal void TickJump()
+    {
+        TickMovementAndJumpBuffer();
+        movementPhysics.ApplyJumpRiseGravity(
+            inputReader.JumpHeld,
+            inputReader.JumpReleased,
+            settings.JumpCutMultiplier,
+            settings.LowJumpGravityMultiplier
+        );
+    }
+
+    internal bool TickFall()
+    {
+        TickMovementAndJumpBuffer();
+
+        if (TryJump())
+            return true;
+
+        movementPhysics.ApplyFallGravity(
+            settings.FallGravityMultiplier,
+            settings.MaxFallSpeed
+        );
+        return false;
     }
 
     internal void TickDuringAttack()
@@ -100,7 +136,10 @@ internal sealed class PlayerLocomotion
             animationController.SetMovement(movementPhysics.HorizontalSpeed);
         }
 
-        ApplyJumpGravity();
+        movementPhysics.ApplyFallGravity(
+            settings.FallGravityMultiplier,
+            settings.MaxFallSpeed
+        );
     }
 
     internal void ClearJumpBuffer()
@@ -125,22 +164,14 @@ internal sealed class PlayerLocomotion
         animationController.FaceMovement(horizontalInput);
     }
 
-    private void HandleJump()
+    private void TickMovementAndJumpBuffer()
     {
+        MoveHorizontally();
         movementPhysics.UpdateJumpBuffer(inputReader.JumpPressed, settings.JumpBufferTime);
-        movementPhysics.TryJump(settings.JumpForce);
-        ApplyJumpGravity();
     }
 
-    private void ApplyJumpGravity()
+    private bool TryJump()
     {
-        movementPhysics.ApplyJumpGravity(
-            inputReader.JumpHeld,
-            inputReader.JumpReleased,
-            settings.JumpCutMultiplier,
-            settings.FallGravityMultiplier,
-            settings.LowJumpGravityMultiplier,
-            settings.MaxFallSpeed
-        );
+        return movementPhysics.TryJump(settings.JumpForce);
     }
 }
