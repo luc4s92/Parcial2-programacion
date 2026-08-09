@@ -5,7 +5,7 @@ internal sealed class PlayerKnockbackState : IPlayerState
 {
     private readonly PlayerDamageReaction damageReaction;
     private readonly float duration;
-    private readonly Action requestLocomotion;
+    private readonly Action resolveLocomotion;
     private Vector2 direction;
     private Collider2D enemyCollider;
     private float elapsedTime;
@@ -13,11 +13,11 @@ internal sealed class PlayerKnockbackState : IPlayerState
     internal PlayerKnockbackState(
         PlayerDamageReaction damageReaction,
         float duration,
-        Action requestLocomotion)
+        Action resolveLocomotion)
     {
         this.damageReaction = damageReaction;
         this.duration = duration;
-        this.requestLocomotion = requestLocomotion;
+        this.resolveLocomotion = resolveLocomotion;
     }
 
     internal void Configure(Vector2 direction, Collider2D enemyCollider)
@@ -37,7 +37,7 @@ internal sealed class PlayerKnockbackState : IPlayerState
         elapsedTime += Time.deltaTime;
 
         if (elapsedTime >= duration)
-            requestLocomotion();
+            resolveLocomotion();
     }
 
     void IPlayerState.Exit()

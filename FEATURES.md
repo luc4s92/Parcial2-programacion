@@ -89,7 +89,7 @@ Pendiente:
 
 ### Iteracion 2: movimiento del jugador
 
-Estado: pendiente.
+Estado: en progreso.
 
 Objetivo:
 
@@ -103,6 +103,23 @@ Mejoras propuestas:
 - Salto variable segun cuanto tiempo se mantiene presionado el boton.
 - Mejor deteccion de suelo.
 - Separar input, movimiento y animacion para reducir acoplamiento.
+
+Implementado:
+
+- Input System con soporte de teclado y joystick.
+- Aceleracion, desaceleracion y control aereo configurables.
+- Coyote time y jump buffer.
+- Salto variable y gravedad diferenciada para ascenso y caida.
+- Maquina de estados para Grounded, Jump, Fall, Attack, Knockback y Dead.
+- Animaciones separadas para ascenso y caida.
+- Separacion entre lectura de input, reglas de locomocion, fisica y animacion.
+
+Pendiente:
+
+- Probar las transiciones Grounded -> Jump -> Fall -> Grounded en Unity.
+- Confirmar que coyote time y jump buffer no hayan sufrido regresiones.
+- Ajustar los sprites o tiempos de Jump/Fall segun la prueba visual.
+- Evaluar una deteccion de suelo mas robusta que el raycast actual.
 
 Criterios de prueba:
 
@@ -200,7 +217,6 @@ Mejoras propuestas:
 
 ## Backlog tecnico
 
-- Revisar el warning de `PlayerMovement.attackHit` sin uso.
 - Auditar referencias serializadas en prefabs.
 - Unificar criterios de audio con null checks.
 - Evaluar un `AudioManager` si el sistema crece.

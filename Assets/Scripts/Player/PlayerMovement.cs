@@ -42,7 +42,9 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private PlayerAnimationController animationController;
     private PlayerDamageReaction damageReaction;
     private PlayerSpeedModifier speedModifier;
-    private PlayerLocomotionState locomotionState;
+    private PlayerGroundedState groundedState;
+    private PlayerJumpState jumpState;
+    private PlayerFallState fallState;
     private PlayerAttackState attackState;
     private PlayerKnockbackState knockbackState;
     private PlayerDeadState deadState;
@@ -94,13 +96,26 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
         attackState = new PlayerAttackState(locomotion, animationController, playerAudio);
         deadState = new PlayerDeadState(damageReaction);
-        locomotionState = new PlayerLocomotionState(inputReader, locomotion, ChangeToAttackState);
+        groundedState = new PlayerGroundedState(
+            inputReader,
+            locomotion,
+            ChangeToAttackState,
+            ChangeToJumpState,
+            ChangeToFallState
+        );
+        jumpState = new PlayerJumpState(locomotion, animationController, ChangeToFallState);
+        fallState = new PlayerFallState(
+            locomotion,
+            animationController,
+            ChangeToGroundedState,
+            ChangeToJumpState
+        );
         knockbackState = new PlayerKnockbackState(
             damageReaction,
             knockbackDuration,
-            ChangeToLocomotionState
+            ResolveLocomotionState
         );
-        stateMachine = new PlayerStateMachine(locomotionState);
+        stateMachine = new PlayerStateMachine(groundedState);
 
         health.OnLifeChanged += OnLifeChanged;
         health.OnDamaged += OnDamaged;
@@ -135,9 +150,27 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         health.OnDeath -= OnDeath;
     }
 
-    private void ChangeToLocomotionState()
+    private void ChangeToGroundedState()
     {
-        stateMachine.ChangeState(locomotionState);
+        stateMachine.ChangeState(groundedState);
+    }
+
+    private void ChangeToJumpState()
+    {
+        stateMachine.ChangeState(jumpState);
+    }
+
+    private void ChangeToFallState()
+    {
+        stateMachine.ChangeState(fallState);
+    }
+
+    private void ResolveLocomotionState()
+    {
+        if (locomotion.IsGrounded)
+            ChangeToGroundedState();
+        else
+            ChangeToFallState();
     }
 
     private void ChangeToAttackState()
@@ -200,7 +233,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     public void OnAttackAnimationFinished()
     {
         if (stateMachine.IsInState(attackState))
-            ChangeToLocomotionState();
+            ResolveLocomotionState();
     }
 
     public void OnDamageAnimationFinished()

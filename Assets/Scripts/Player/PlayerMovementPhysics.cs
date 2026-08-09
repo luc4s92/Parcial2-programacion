@@ -11,6 +11,7 @@ internal sealed class PlayerMovementPhysics
 
     internal bool IsGrounded { get; private set; }
     internal float HorizontalSpeed => Mathf.Abs(rigidBody.linearVelocity.x);
+    internal float VerticalSpeed => rigidBody.linearVelocity.y;
 
     internal PlayerMovementPhysics(Rigidbody2D rigidBody, Transform transform)
     {
@@ -69,38 +70,26 @@ internal sealed class PlayerMovementPhysics
         rigidBody.linearVelocity = new Vector2(horizontalVelocity, rigidBody.linearVelocity.y);
     }
 
-    internal void TryJump(float jumpForce)
+    internal bool TryJump(float jumpForce)
     {
-        if (jumpBufferCounter <= 0f || coyoteCounter <= 0f) return;
+        if (jumpBufferCounter <= 0f || coyoteCounter <= 0f) return false;
 
         rigidBody.linearVelocity = new Vector2(rigidBody.linearVelocity.x, 0f);
         rigidBody.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
 
         jumpBufferCounter = 0f;
         coyoteCounter = 0f;
+        IsGrounded = false;
+        return true;
     }
 
-    internal void ApplyJumpGravity(
+    internal void ApplyJumpRiseGravity(
         bool jumpHeld,
         bool jumpReleased,
         float jumpCutMultiplier,
-        float fallGravityMultiplier,
-        float lowJumpGravityMultiplier,
-        float maxFallSpeed)
+        float lowJumpGravityMultiplier)
     {
-        if (IsGrounded)
-        {
-            ResetGravity();
-            return;
-        }
-
-        if (rigidBody.linearVelocity.y < 0f)
-        {
-            rigidBody.gravityScale = defaultGravityScale * fallGravityMultiplier;
-            if (rigidBody.linearVelocity.y < -maxFallSpeed)
-                rigidBody.linearVelocity = new Vector2(rigidBody.linearVelocity.x, -maxFallSpeed);
-        }
-        else if (rigidBody.linearVelocity.y > 0f && !jumpHeld)
+        if (rigidBody.linearVelocity.y > 0f && !jumpHeld)
         {
             rigidBody.gravityScale = defaultGravityScale * lowJumpGravityMultiplier;
         }
@@ -116,6 +105,20 @@ internal sealed class PlayerMovementPhysics
                 rigidBody.linearVelocity.y * jumpCutMultiplier
             );
         }
+    }
+
+    internal void ApplyFallGravity(float fallGravityMultiplier, float maxFallSpeed)
+    {
+        if (IsGrounded)
+        {
+            ResetGravity();
+            return;
+        }
+
+        rigidBody.gravityScale = defaultGravityScale * fallGravityMultiplier;
+
+        if (rigidBody.linearVelocity.y < -maxFallSpeed)
+            rigidBody.linearVelocity = new Vector2(rigidBody.linearVelocity.x, -maxFallSpeed);
     }
 
     internal void Brake(float deceleration)
