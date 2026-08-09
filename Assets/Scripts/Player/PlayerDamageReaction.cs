@@ -3,7 +3,6 @@ using UnityEngine;
 internal sealed class PlayerDamageReaction
 {
     private readonly Rigidbody2D rigidBody;
-    private readonly Collider2D playerCollider;
     private readonly PlayerMovementPhysics movementPhysics;
     private readonly PlayerAnimationController animationController;
     private readonly PlayerAudio playerAudio;
@@ -11,14 +10,12 @@ internal sealed class PlayerDamageReaction
 
     internal PlayerDamageReaction(
         Rigidbody2D rigidBody,
-        Collider2D playerCollider,
         PlayerMovementPhysics movementPhysics,
         PlayerAnimationController animationController,
         PlayerAudio playerAudio,
         float collisionForce)
     {
         this.rigidBody = rigidBody;
-        this.playerCollider = playerCollider;
         this.movementPhysics = movementPhysics;
         this.animationController = animationController;
         this.playerAudio = playerAudio;
@@ -40,9 +37,8 @@ internal sealed class PlayerDamageReaction
         animationController.SetDamaged(false);
     }
 
-    internal void BeginKnockback(Vector2 direction, Collider2D enemyCollider)
+    internal void BeginKnockback(Vector2 direction)
     {
-        SetEnemyCollisionIgnored(enemyCollider, true);
         movementPhysics.ResetGravity();
         movementPhysics.Stop();
 
@@ -53,9 +49,8 @@ internal sealed class PlayerDamageReaction
         rigidBody.AddForce(force, ForceMode2D.Impulse);
     }
 
-    internal void EndKnockback(Collider2D enemyCollider)
+    internal void EndKnockback()
     {
-        SetEnemyCollisionIgnored(enemyCollider, false);
         movementPhysics.Stop();
     }
 
@@ -65,11 +60,5 @@ internal sealed class PlayerDamageReaction
         movementPhysics.ResetGravity();
         movementPhysics.Stop();
         playerAudio?.PlayDeath();
-    }
-
-    private void SetEnemyCollisionIgnored(Collider2D enemyCollider, bool ignored)
-    {
-        if (enemyCollider != null)
-            Physics2D.IgnoreCollision(playerCollider, enemyCollider, ignored);
     }
 }

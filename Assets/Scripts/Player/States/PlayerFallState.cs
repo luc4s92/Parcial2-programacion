@@ -1,6 +1,6 @@
 using System;
 
-internal sealed class PlayerFallState : IPlayerState
+internal sealed class PlayerFallState : IState
 {
     private readonly PlayerLocomotion locomotion;
     private readonly PlayerAnimationController animationController;
@@ -19,12 +19,12 @@ internal sealed class PlayerFallState : IPlayerState
         this.requestJump = requestJump;
     }
 
-    void IPlayerState.Enter()
+    void IState.Enter()
     {
         animationController.PlayFall();
     }
 
-    void IPlayerState.Tick()
+    void IState.Tick()
     {
         if (locomotion.TickFall())
         {
@@ -36,7 +36,7 @@ internal sealed class PlayerFallState : IPlayerState
             requestGrounded();
     }
 
-    void IPlayerState.Exit()
+    void IState.Exit()
     {
     }
 }

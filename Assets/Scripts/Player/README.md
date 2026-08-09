@@ -9,7 +9,7 @@ gameplay de la implementacion de fisica y de la presentacion visual.
 ```mermaid
 flowchart LR
     InputSystem[Input System] --> InputReader[PlayerInputReader]
-    PlayerMovement[PlayerMovement] --> StateMachine[PlayerStateMachine]
+    PlayerMovement[PlayerMovement] --> StateMachine[StateMachine]
     StateMachine --> CurrentState[Estado actual]
     InputReader --> CurrentState
     CurrentState --> Locomotion[PlayerLocomotion]
@@ -34,7 +34,7 @@ los servicios y estados, conecta sus dependencias y construye la maquina de esta
 | `PlayerDamageReaction` | Ejecuta feedback, knockback y muerte. |
 | `PlayerSpeedModifier` | Mantiene la velocidad base y modificadores temporales. |
 | `PlayerAudio` | Reproduce los sonidos locales del jugador. |
-| `PlayerStateMachine` | Mantiene un unico estado activo y ejecuta su ciclo de vida. |
+| `StateMachine` | Mantiene un unico estado activo y ejecuta su ciclo de vida. |
 
 ## Ejecucion por frame
 
@@ -42,7 +42,7 @@ los servicios y estados, conecta sus dependencias y construye la maquina de esta
 
 1. Actualiza la duracion de los modificadores de velocidad.
 2. Comprueba el suelo mediante `PlayerLocomotion.UpdateGroundState()`.
-3. Ejecuta `PlayerStateMachine.Tick()`.
+3. Ejecuta `StateMachine.Tick()`.
 4. El estado actual decide que comportamiento ejecutar y si debe cambiar de estado.
 5. Actualiza el parametro de suelo del Animator.
 
@@ -51,10 +51,10 @@ se ejecutan simultaneamente.
 
 ## Ciclo de un estado
 
-Todos los estados implementan `IPlayerState`:
+Todos los estados implementan `IState`:
 
 ```csharp
-internal interface IPlayerState
+internal interface IState
 {
     void Enter();
     void Tick();
@@ -62,7 +62,7 @@ internal interface IPlayerState
 }
 ```
 
-Al cambiar de estado, `PlayerStateMachine` ejecuta:
+Al cambiar de estado, `StateMachine` ejecuta:
 
 ```text
 estado actual.Exit()
@@ -110,7 +110,6 @@ Esto reduce el acoplamiento entre cada estado y el coordinador.
 
 ### Knockback
 
-- Ignora temporalmente la colision con el enemigo que produjo el golpe.
 - Detiene el movimiento anterior y aplica un impulso.
 - Espera la duracion configurada.
 - Al terminar vuelve a `Grounded` o `Fall`.
@@ -170,7 +169,7 @@ los conecta para formar el comportamiento completo del jugador. Por ejemplo:
 
 ```text
 PlayerMovement
-  contiene PlayerStateMachine
+  contiene StateMachine
   contiene PlayerLocomotion
   contiene PlayerAnimationController
   contiene PlayerDamageReaction
@@ -190,11 +189,12 @@ donde se crean los objetos y se conectan sus dependencias.
 - `PlayerAnimationController` no decide fisica.
 - La locomocion compartida no debe copiarse dentro de cada estado.
 - Los valores ajustables deben permanecer serializados en `PlayerMovement` y pasar a `Settings`.
-- Las clases auxiliares permanecen `internal` porque solo pertenecen al sistema del jugador.
+- Las clases auxiliares permanecen `internal` porque son detalles de implementacion del juego.
+- `IState` y `StateMachine` viven en `Core/StateMachine` y se reutilizan por composicion.
 
 ## Agregar un estado
 
-1. Crear una clase `internal sealed` que implemente `IPlayerState`.
+1. Crear una clase `internal sealed` que implemente `IState`.
 2. Inyectar solamente las dependencias que necesita mediante el constructor.
 3. Recibir callbacks `Action` para solicitar transiciones.
 4. Crear el estado en `PlayerMovement.Awake()`.

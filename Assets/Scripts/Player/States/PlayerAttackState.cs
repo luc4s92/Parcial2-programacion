@@ -1,4 +1,4 @@
-internal sealed class PlayerAttackState : IPlayerState
+internal sealed class PlayerAttackState : IState
 {
     private readonly PlayerLocomotion locomotion;
     private readonly PlayerAnimationController animationController;
@@ -14,19 +14,19 @@ internal sealed class PlayerAttackState : IPlayerState
         this.playerAudio = playerAudio;
     }
 
-    void IPlayerState.Enter()
+    void IState.Enter()
     {
         locomotion.ClearJumpBuffer();
         animationController.SetAttacking(true);
         playerAudio?.PlaySwing();
     }
 
-    void IPlayerState.Tick()
+    void IState.Tick()
     {
         locomotion.TickDuringAttack();
     }
 
-    void IPlayerState.Exit()
+    void IState.Exit()
     {
         animationController.SetAttacking(false);
     }

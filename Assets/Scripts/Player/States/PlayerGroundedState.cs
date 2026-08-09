@@ -1,6 +1,6 @@
 using System;
 
-internal sealed class PlayerGroundedState : IPlayerState
+internal sealed class PlayerGroundedState : IState
 {
     private readonly PlayerInputReader inputReader;
     private readonly PlayerLocomotion locomotion;
@@ -22,12 +22,12 @@ internal sealed class PlayerGroundedState : IPlayerState
         this.requestFall = requestFall;
     }
 
-    void IPlayerState.Enter()
+    void IState.Enter()
     {
         locomotion.EnterGrounded();
     }
 
-    void IPlayerState.Tick()
+    void IState.Tick()
     {
         if (locomotion.TickGrounded())
         {
@@ -45,7 +45,7 @@ internal sealed class PlayerGroundedState : IPlayerState
             requestAttack();
     }
 
-    void IPlayerState.Exit()
+    void IState.Exit()
     {
     }
 }

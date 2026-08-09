@@ -37,7 +37,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [SerializeField] private PlayerAudio playerAudio;
 
     private Health health;
-    private PlayerStateMachine stateMachine;
+    private StateMachine stateMachine;
     private PlayerLocomotion locomotion;
     private PlayerAnimationController animationController;
     private PlayerDamageReaction damageReaction;
@@ -52,7 +52,6 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void Awake()
     {
         Rigidbody2D rigidBody = GetComponent<Rigidbody2D>();
-        Collider2D playerCollider = GetComponent<Collider2D>();
         PlayerInputReader inputReader = GetComponent<PlayerInputReader>();
         health = GetComponent<Health>();
 
@@ -87,7 +86,6 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         );
         damageReaction = new PlayerDamageReaction(
             rigidBody,
-            playerCollider,
             movementPhysics,
             animationController,
             playerAudio,
@@ -115,7 +113,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             knockbackDuration,
             ResolveLocomotionState
         );
-        stateMachine = new PlayerStateMachine(groundedState);
+        stateMachine = new StateMachine(groundedState);
 
         health.OnLifeChanged += OnLifeChanged;
         health.OnDamaged += OnDamaged;
@@ -178,31 +176,10 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         stateMachine.ChangeState(attackState);
     }
 
-    private void ChangeToKnockbackState(Vector2 direction, Collider2D enemyCollider)
+    private void ChangeToKnockbackState(Vector2 direction)
     {
-        knockbackState.Configure(direction, enemyCollider);
+        knockbackState.Configure(direction);
         stateMachine.ChangeState(knockbackState);
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (!health.IsAlive ||
-            stateMachine.IsInState(knockbackState) ||
-            stateMachine.IsInState(deadState) ||
-            !collision.collider.CompareTag("Enemy"))
-        {
-            return;
-        }
-
-        Vector2 attackDirection = new Vector2(
-            transform.position.x - collision.transform.position.x,
-            0.5f
-        ).normalized;
-
-        TakeDamage(1, attackDirection);
-        if (!health.IsAlive) return;
-
-        ChangeToKnockbackState(attackDirection, collision.collider);
     }
 
     private void OnLifeChanged(int currentLife, int maxLife)
@@ -251,7 +228,17 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     public void TakeDamage(int damage, Vector2 attackDirection)
     {
+        if (!health.IsAlive ||
+            stateMachine.IsInState(knockbackState) ||
+            stateMachine.IsInState(deadState))
+        {
+            return;
+        }
+
         health.TakeDamage(damage, attackDirection);
+
+        if (health.IsAlive)
+            ChangeToKnockbackState(attackDirection);
     }
 
     private void OnDrawGizmos()
