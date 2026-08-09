@@ -233,6 +233,14 @@ MonoBehaviour:
   detectionRadius: 5
   speed: 1.5
   life: 3
+  facesRightByDefault: 0
+  knockbackForce: 3
+  hitRecoveryDuration: 0.6
+  bodyCleanupDelay: 1
+  attackRange: 2
+  attackCooldown: 0.75
+  attackDamage: 1
+  attackHitbox: {fileID: 3759839657511008642}
   animator: {fileID: 4021019570122226904}
   enemyAudio: {fileID: 9088434567320000524}
   possibleDrops:

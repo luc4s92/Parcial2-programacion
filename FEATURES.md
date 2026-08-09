@@ -19,7 +19,7 @@ Pulir un juego 2D hecho en Unity/C# hasta dejarlo como una muestra jugable que c
 - Salto.
 - Ataque con espada.
 - Sistema de vida mediante componente `Health`.
-- Danio por contacto con enemigos y trampas.
+- Danio mediante ataques enemigos y trampas.
 - Knockback al recibir danio.
 - Animaciones de movimiento, ataque, danio y muerte.
 - Modificadores temporales de velocidad mediante items.
@@ -27,9 +27,12 @@ Pulir un juego 2D hecho en Unity/C# hasta dejarlo como una muestra jugable que c
 ### Enemigos
 
 - Clase base `EnemyController`.
-- Enemigo melee con persecucion.
-- Estrategias de comportamiento con `IEnemyStrategy`.
-- Estados de danio y muerte.
+- Enemigo melee con deteccion, persecucion y ataque por rango.
+- Demon ranged fijo con giro horizontal y proyectiles.
+- HellHound corredor con aparicion por trigger y dano por contacto.
+- Maquina de estados para Idle, Chase, Attack, Hit y Dead.
+- Hitbox de ataque sincronizado mediante Animation Events.
+- Estados y servicios separados para deteccion, movimiento, combate y vida.
 - Registro de enemigos derrotados en `GameManager`.
 - Sistema de drops aleatorios al morir.
 
@@ -130,7 +133,7 @@ Criterios de prueba:
 
 ### Iteracion 3: enemigos y combate
 
-Estado: pendiente.
+Estado: en progreso.
 
 Objetivo:
 
@@ -138,12 +141,36 @@ Hacer que los enemigos se sientan mas consistentes y que el combate sea mas legi
 
 Mejoras propuestas:
 
-- Estados mas claros: idle, chase, hitstun, death.
+- Estados mas claros: idle, chase, attack, hit y dead.
 - Mejor persecucion del enemigo melee.
 - Evitar empujes o contactos injustos.
 - Ajustar knockback del enemigo.
 - Mejor feedback al golpear con espada.
 - Revisar hitboxes y triggers.
+
+Implementado:
+
+- `StateMachine` e `IState` compartidos por composicion con el jugador.
+- Estados separados para Idle, Chase, Attack, Hit y Dead.
+- Servicios con responsabilidades unicas para targeting, movimiento, combate, vida y feedback.
+- Ataque melee con rango, cooldown y una ventana de hitbox sincronizada con la animacion.
+- Dano del enemigo mediante `IDamageable`, sin dano duplicado por contacto corporal.
+- Variantes separadas para melee, ranged y carrera por contacto.
+- Trigger reutilizable que genera al HellHound delante del jugador y en sentido contrario.
+- Proyectil enemigo con direccion, velocidad, dano y vida util configurables.
+- Pool limitado de proyectiles reutilizables para evitar instanciaciones por disparo.
+- Proyectiles enemigos que atraviesan otros enemigos.
+- HellHound con limpieza al colisionar lateralmente contra una pared.
+- Fallback temporizado para animaciones sin evento de finalizacion.
+- Eliminacion de estrategias e interfaces que no representaban variantes reales.
+- Documentacion de arquitectura, SOLID, DRY y decisiones de extension.
+
+Pendiente:
+
+- Probar y ajustar `attackRange`, `attackCooldown` y `knockbackForce` en Unity.
+- Confirmar visualmente los frames de apertura y cierre del hitbox.
+- Probar interrupciones de Attack por Hit y la muerte durante combate.
+- Evaluar patrulla solo cuando el escenario defina puntos o limites concretos.
 
 Criterios de prueba:
 

@@ -1,58 +1,128 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
-public class MeleeEnemy : EnemyController
+public sealed class MeleeEnemy : EnemyController
 {
-   
+    [Header("Combat")]
+    [SerializeField] private float attackRange = 2f;
+    [SerializeField] private float attackCooldown = 0.75f;
+    [SerializeField] private int attackDamage = 1;
+    [SerializeField] private Collider2D attackHitbox;
 
     [Header("Drops")]
-    [SerializeField] private List<GameObject> possibleDrops; // lista de prefabs de items
-    [SerializeField] private float dropChance = 1f; // % probabilidad de soltar algo
-    
-    protected override void Start()
+    [SerializeField] private List<GameObject> possibleDrops;
+    [Range(0f, 1f)]
+    [SerializeField] private float dropChance = 1f;
+
+    private EnemyTargeting targeting;
+    private EnemyCombat combat;
+    private EnemyIdleState idleState;
+    private EnemyChaseState chaseState;
+    private EnemyAttackState attackState;
+
+    private protected override IState CreateInitialState()
     {
-        base.Start();
-        strategy = new ChaseStrategy();
+        targeting = new EnemyTargeting(transform, Player, detectionRadius, attackRange);
+        combat = new EnemyCombat(transform, attackHitbox, attackDamage, attackCooldown);
+
+        idleState = new EnemyIdleState(
+            targeting,
+            Movement,
+            AnimationController,
+            ChangeToChaseState
+        );
+        chaseState = new EnemyChaseState(
+            targeting,
+            Movement,
+            AnimationController,
+            combat,
+            ChangeToIdleState,
+            ChangeToAttackState
+        );
+        attackState = new EnemyAttackState(
+            targeting,
+            Movement,
+            AnimationController,
+            combat,
+            ResolveBehaviourState
+        );
+
+        return idleState;
     }
 
-    protected override void EnemyBehaviour()
+    protected override void TickBehaviour(float deltaTime)
     {
-        if (isDead || Player == null || !isPlayerAlive)
-        {
-            Rigidbody.linearVelocity = Vector2.zero;
-            animator.SetBool("onMovement", false);
-            return;
-        }
+        combat.Tick(deltaTime);
+    }
 
-        float distanceToPlayer = Vector2.Distance(transform.position, Player.position);
+    protected override void HandleTriggerEnter(Collider2D collision)
+    {
+        if (IsInState(attackState))
+            combat.TryDealDamage(collision);
+    }
 
-        if (distanceToPlayer < DetectionRadius && !IsTakingDamage)
-        {
-            strategy.Execute(this);
-            animator.SetBool("onMovement", true);
+    protected override void HandleTargetDisabled()
+    {
+        targeting.DisableTarget();
+    }
 
-            Vector2 dir = (Player.position - transform.position).normalized;
-            transform.localScale = dir.x < 0 ? new Vector3(1, 1, 1) : new Vector3(-1, 1, 1);
-        }
+    protected override void ResolveBehaviourState()
+    {
+        if (targeting.IsTargetDetected)
+            ChangeToChaseState();
         else
-        {
-            animator.SetBool("onMovement", false);
-            Rigidbody.linearVelocity = Vector2.zero;
-        }
+            ChangeToIdleState();
+    }
+
+    protected override void OnDrawGizmosSelected()
+    {
+        base.OnDrawGizmosSelected();
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+    }
+
+    public void BeginAttackHit()
+    {
+        if (IsInState(attackState))
+            combat.OpenHitbox();
+    }
+
+    public void EndAttackHit()
+    {
+        combat.CloseHitbox();
+    }
+
+    public void EndAttack()
+    {
+        if (IsInState(attackState))
+            attackState.CompleteAttack();
     }
 
     protected override void DropItem()
     {
-        if (possibleDrops.Count == 0) return;
+        if (possibleDrops == null || possibleDrops.Count == 0) return;
+        if (Random.value > dropChance) return;
 
-        // chequeo si dropea algo
-        if (Random.value <= dropChance)
-        {
-            int index = Random.Range(0, possibleDrops.Count);
-            GameObject itemToDrop = possibleDrops[index];
-            Instantiate(itemToDrop, transform.position, Quaternion.identity);
+        int index = Random.Range(0, possibleDrops.Count);
+        GameObject itemToDrop = possibleDrops[index];
+        Instantiate(itemToDrop, transform.position, Quaternion.identity);
 
-            Debug.Log($"[{gameObject.name}] solto: {itemToDrop.name}");
-        }
+        Debug.Log($"[{gameObject.name}] solto: {itemToDrop.name}");
+    }
+
+    private void ChangeToIdleState()
+    {
+        ChangeState(idleState);
+    }
+
+    private void ChangeToChaseState()
+    {
+        ChangeState(chaseState);
+    }
+
+    private void ChangeToAttackState()
+    {
+        ChangeState(attackState);
     }
 }
