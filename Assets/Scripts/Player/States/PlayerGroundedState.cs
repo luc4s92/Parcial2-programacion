@@ -23,9 +23,17 @@ internal sealed class PlayerGroundedState : IState
 
     void IState.Tick()
     {
-        if (locomotion.TickGrounded())
+        PlayerLocomotion.GroundedTickResult result = locomotion.TickGrounded();
+
+        if (result == PlayerLocomotion.GroundedTickResult.Jumped)
         {
             requestJump();
+            return;
+        }
+
+        if (result == PlayerLocomotion.GroundedTickResult.DroppedThroughPlatform)
+        {
+            requestFall();
             return;
         }
 
