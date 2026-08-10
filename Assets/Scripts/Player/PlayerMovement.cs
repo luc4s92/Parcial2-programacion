@@ -44,6 +44,16 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [SerializeField] private float collitionForce = 6f;
     [SerializeField] private float knockbackDuration = 0.25f;
 
+    [Header("Shuriken")]
+    [SerializeField] private PlayerShurikenProjectile shurikenProjectilePrefab;
+    [SerializeField] private Transform shurikenFirePoint;
+    [SerializeField] private float shurikenCooldown = 0.4f;
+    [SerializeField] private float shurikenSpeed = 12f;
+    [SerializeField] private float shurikenRotationSpeed = 720f;
+    [SerializeField] private float shurikenLifetime = 2f;
+    [SerializeField] private int shurikenDamage = 1;
+    [SerializeField] private int shurikenPoolCapacity = 4;
+
     [Header("Referencias")]
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerAudio playerAudio;
@@ -55,6 +65,8 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private PlayerAnimationController animationController;
     private PlayerDamageReaction damageReaction;
     private PlayerSpeedModifier speedModifier;
+    private ComponentPool<PlayerShurikenProjectile> shurikenPool;
+    private PlayerShurikenCombat shurikenCombat;
     private PlayerGroundedState groundedState;
     private PlayerJumpState jumpState;
     private PlayerFallState fallState;
@@ -62,6 +74,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private PlayerAttackState attackState;
     private PlayerKnockbackState knockbackState;
     private PlayerDeadState deadState;
+    private PlayerRangedAttackState rangedAttackState;
 
     private void Awake()
     {
@@ -116,8 +129,29 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             collitionForce
         );
 
-        readyActionState = new PlayerReadyActionState(inputReader, ChangeToAttackState);
+        shurikenPool = new ComponentPool<PlayerShurikenProjectile>(
+            shurikenProjectilePrefab,
+            shurikenPoolCapacity
+        );
+        shurikenCombat = new PlayerShurikenCombat(
+            transform,
+            shurikenFirePoint,
+            shurikenPool,
+            shurikenCooldown,
+            shurikenSpeed,
+            shurikenRotationSpeed,
+            shurikenLifetime,
+            shurikenDamage
+        );
+
+        readyActionState = new PlayerReadyActionState(
+            inputReader,
+            ChangeToAttackState,
+            () => shurikenCombat.CanThrow,
+            ChangeToRangedAttackState
+        );
         attackState = new PlayerAttackState(animationController, playerAudio);
+        rangedAttackState = new PlayerRangedAttackState(animationController);
         deadState = new PlayerDeadState(damageReaction);
         groundedState = new PlayerGroundedState(
             locomotion,
@@ -153,6 +187,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void Update()
     {
         speedModifier.Tick(Time.deltaTime);
+        shurikenCombat.Tick(Time.deltaTime);
 
         if (health.IsAlive)
         {
@@ -169,6 +204,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void OnDestroy()
     {
         locomotion?.RestorePlatformCollision();
+        shurikenPool?.Dispose();
 
         if (health == null) return;
 
@@ -210,6 +246,11 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         actionStateMachine.ChangeState(attackState);
     }
 
+    private void ChangeToRangedAttackState()
+    {
+        actionStateMachine.ChangeState(rangedAttackState);
+    }
+
     private void ChangeToKnockbackState(Vector2 direction)
     {
         knockbackState.Configure(direction);
@@ -248,7 +289,22 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         if (!actionStateMachine.IsInState(attackState)) return;
 
         actionStateMachine.ChangeState(readyActionState);
-        RestoreAirborneAnimation();
+        RestoreLocomotionAnimation();
+    }
+
+    public void OnRangedAttackRelease()
+    {
+        if (!actionStateMachine.IsInState(rangedAttackState)) return;
+
+        shurikenCombat.TryThrow();
+    }
+
+    public void OnRangedAttackAnimationFinished()
+    {
+        if (!actionStateMachine.IsInState(rangedAttackState)) return;
+
+        actionStateMachine.ChangeState(readyActionState);
+        RestoreLocomotionAnimation();
     }
 
     public void OnDamageAnimationFinished()
@@ -308,11 +364,13 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             actionStateMachine.ChangeState(readyActionState);
     }
 
-    private void RestoreAirborneAnimation()
+    private void RestoreLocomotionAnimation()
     {
         if (locomotionStateMachine.IsInState(jumpState))
             animationController.PlayJump();
         else if (locomotionStateMachine.IsInState(fallState))
             animationController.PlayFall();
+        else
+            animationController.PlayGrounded();
     }
 }

@@ -40,6 +40,7 @@ BoxCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 357161222353169377}
   m_Enabled: 0
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -63,7 +64,8 @@ BoxCollider2D:
     m_Bits: 4294967295
   m_IsTrigger: 1
   m_UsedByEffector: 0
-  m_UsedByComposite: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
   m_Offset: {x: 0.4758485, y: 0.09384513}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
@@ -74,7 +76,6 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  serializedVersion: 2
   m_Size: {x: 1.9516968, y: 0.60585093}
   m_EdgeRadius: 0
 --- !u!1 &942650872783276706
@@ -119,7 +120,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -1011226463377902301, guid: 3d4f2bb1b0d56cd47bc538c3a2b7dded, type: 2}
-  m_audioClip: {fileID: 8300000, guid: ce699b5be61d5124abec143cd544964f, type: 3}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: ce699b5be61d5124abec143cd544964f, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -247,7 +249,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -1011226463377902301, guid: 3d4f2bb1b0d56cd47bc538c3a2b7dded, type: 2}
-  m_audioClip: {fileID: 8300000, guid: f098491ef3b9f594aafedbd683bde2a1, type: 3}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: f098491ef3b9f594aafedbd683bde2a1, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -368,6 +371,37 @@ Transform:
   - {fileID: 8722583702035107415}
   m_Father: {fileID: 2257679664801288329}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2973213059806429857
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6922512722329870786}
+  m_Layer: 0
+  m_Name: ShurikenFirePoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6922512722329870786
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2973213059806429857}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.43, y: -1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2257679664801288329}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4462659162290606171
 GameObject:
   m_ObjectHideFlags: 0
@@ -410,7 +444,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -1011226463377902301, guid: 3d4f2bb1b0d56cd47bc538c3a2b7dded, type: 2}
-  m_audioClip: {fileID: 8300000, guid: 75c0fe982f2ffb941a207b5691ee6a78, type: 3}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: 75c0fe982f2ffb941a207b5691ee6a78, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -538,7 +573,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: -1011226463377902301, guid: 3d4f2bb1b0d56cd47bc538c3a2b7dded, type: 2}
-  m_audioClip: {fileID: 8300000, guid: f7e0edfb004b21b4a9c367fc06514b37, type: 3}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: f7e0edfb004b21b4a9c367fc06514b37, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -663,10 +699,12 @@ Transform:
   m_Children:
   - {fileID: 7950361525347615077}
   - {fileID: 4368898929214141462}
+  - {fileID: 6922512722329870786}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -367.405, z: 0}
 --- !u!212 &182974895255462134
 SpriteRenderer:
+  serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -682,6 +720,11 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -703,9 +746,11 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_Sprite: {fileID: -1484711411, guid: 573ff6b87c6da484da3986e54decc136, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -715,7 +760,6 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!61 &1906454740363531107
 BoxCollider2D:
@@ -725,6 +769,7 @@ BoxCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6853090505097361413}
   m_Enabled: 1
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 6200000, guid: 5d0c09337ad24c5eb998b636f27705e4, type: 2}
   m_IncludeLayers:
@@ -748,7 +793,8 @@ BoxCollider2D:
     m_Bits: 4294967295
   m_IsTrigger: 0
   m_UsedByEffector: 0
-  m_UsedByComposite: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
   m_Offset: {x: 0.011928916, y: -0.9985659}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
@@ -759,12 +805,11 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  serializedVersion: 2
   m_Size: {x: 1.0907223, y: 2.232264}
   m_EdgeRadius: 0
 --- !u!50 &1844007684581833580
 Rigidbody2D:
-  serializedVersion: 4
+  serializedVersion: 5
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -775,8 +820,8 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDrag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_GravityScale: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -825,7 +870,14 @@ MonoBehaviour:
   dropThroughMaxDuration: 1
   collitionForce: 6
   knockbackDuration: 0.25
-  deathDelay: 4
+  shurikenProjectilePrefab: {fileID: 5072509340865320722, guid: 69200011b89fd0e499a5bbff5ea4e5b6, type: 3}
+  shurikenFirePoint: {fileID: 6922512722329870786}
+  shurikenCooldown: 0.4
+  shurikenSpeed: 12
+  shurikenRotationSpeed: 720
+  shurikenLifetime: 2
+  shurikenDamage: 1
+  shurikenPoolCapacity: 4
   animator: {fileID: 1240113226366767481}
   playerAudio: {fileID: 825737759901522193}
 --- !u!114 &3526672639492612526
@@ -838,11 +890,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 76f708192a3b4c43d5e6f708192a3b07, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!95 &1240113226366767481
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -856,6 +908,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -890,3 +943,4 @@ MonoBehaviour:
   swingSFX: {fileID: 1405738273912830025}
   hitSFX: {fileID: 3539345891076994126}
   damageSFX: {fileID: 223622982153636541}
+  deathSFX: {fileID: 0}

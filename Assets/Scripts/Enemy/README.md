@@ -40,7 +40,7 @@ enemigo concreto construye su Composition Root especifico.
 | `EnemyRun` | Mantiene una direccion horizontal fija y ejecuta el movimiento. |
 | `HellHoundSpawnTrigger` | Instancia un HellHound delante del jugador y lo envia en sentido contrario. |
 | `EnemyProjectile` | Mueve el proyectil, aplica `IDamageable` y controla su vida util. |
-| `EnemyProjectilePool` | Limita, conserva y reutiliza las instancias de proyectiles. |
+| `ComponentPool<T>` | Limita, conserva y reutiliza proyectiles de enemigos y del jugador. |
 | `States/*` | Decide que comportamiento puede ejecutarse y cuando transicionar. |
 
 ## Variantes actuales
@@ -113,11 +113,11 @@ cada `Tick`: si el jugador lo cruza por arriba, solo cambia `localScale.x` y con
 disparando. Cada proyectil conserva la direccion calculada al momento de salir y
 atraviesa a todos los enemigos.
 
-Los proyectiles usan el patron **Object Pool**. `EnemyProjectilePool` crea instancias
-bajo demanda hasta `projectilePoolCapacity`; al impactar o agotar su vida util, el
-proyectil se desactiva y vuelve a una cola para el siguiente disparo. Si todos estan
-activos, no se supera el limite. Esto evita el ciclo constante de `Instantiate` y
-`Destroy` durante el combate.
+Los proyectiles usan el patron **Object Pool**. `ComponentPool<EnemyProjectile>` crea
+instancias bajo demanda hasta `projectilePoolCapacity`; al impactar o agotar su vida
+util, el proyectil se desactiva y vuelve a una cola para el siguiente disparo. Si
+todos estan activos, no se supera el limite. El pool generico tambien sirve al
+shuriken del jugador, mientras cada proyectil conserva sus propias reglas de impacto.
 
 Prefabs:
 
