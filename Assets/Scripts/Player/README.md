@@ -12,7 +12,7 @@ flowchart LR
     PlayerMovement[PlayerMovement] --> LocomotionMachine[StateMachine de locomocion]
     PlayerMovement --> ActionMachine[StateMachine de acciones]
     LocomotionMachine --> LocomotionState[Grounded / Jump / Fall]
-    ActionMachine --> ActionState[Ready / Attack]
+    ActionMachine --> ActionState[Ready / Attack / RangedAttack]
     InputReader --> LocomotionState
     InputReader --> ActionState
     LocomotionState --> Locomotion[PlayerLocomotion]
@@ -41,7 +41,10 @@ La locomocion y las acciones avanzan en paralelo sin competir por un unico estad
 | `PlayerAnimationController` | Encapsula parametros y estados del Animator. |
 | `PlayerDamageReaction` | Ejecuta feedback, knockback y muerte. |
 | `PlayerSpeedModifier` | Mantiene la velocidad base y modificadores temporales. |
+| `PlayerShurikenCombat` | Valida cooldown, direccion y creacion del shuriken. |
+| `PlayerShurikenProjectile` | Mueve, rota, aplica dano y devuelve el shuriken al pool. |
 | `PlayerAudio` | Reproduce los sonidos locales del jugador. |
+| `ComponentPool<T>` | Limita y reutiliza componentes instanciados, incluidos ambos tipos de proyectil. |
 | `OneWayPlatform` | Marca y configura una plataforma que se atraviesa desde abajo o con abajo + salto. |
 | `StateMachine` | Mantiene un estado activo por instancia y ejecuta su ciclo de vida. |
 
@@ -49,7 +52,7 @@ La locomocion y las acciones avanzan en paralelo sin competir por un unico estad
 
 `PlayerMovement.Update()` realiza este orden:
 
-1. Actualiza la duracion de los modificadores de velocidad.
+1. Actualiza la duracion de los modificadores de velocidad y el cooldown del shuriken.
 2. Comprueba el suelo mediante un `Collider2D.Cast` corto desde todo el collider corporal.
 3. Ejecuta la maquina de locomocion.
 4. Si no existe knockback, ejecuta la maquina de acciones.
@@ -115,13 +118,21 @@ Esto reduce el acoplamiento entre cada estado y el coordinador.
 - Termina mediante un Animation Event.
 - No modifica velocidad, gravedad, salto ni orientacion.
 - Puede convivir con `Grounded`, `Jump` o `Fall`.
-- Al terminar vuelve a `Ready` y restaura la animacion aerea si corresponde.
+- Al terminar vuelve a `Ready` y restaura la animacion de locomocion correspondiente.
+
+### RangedAttack
+
+- Reproduce directamente la animacion `throw` sin detener la locomocion.
+- Crea el shuriken mediante un Animation Event sincronizado con el frame de lanzamiento.
+- Termina mediante un segundo Animation Event y vuelve a `Ready`.
+- Puede convivir con `Grounded`, `Jump` o `Fall`.
+- Solo comienza cuando termino el cooldown y el pool dispone de una instancia.
 
 ### Ready
 
-- Espera la entrada de ataque sin modificar locomocion ni presentacion.
+- Espera entradas de combate sin modificar locomocion ni presentacion.
 - Cambia a `Attack` al presionar el boton de espada.
-- Es el punto de extension para el futuro ataque de shuriken.
+- Cambia a `RangedAttack` al solicitar un shuriken disponible.
 
 ### Knockback
 
@@ -154,12 +165,33 @@ stateDiagram-v2
         [*] --> Ready
         Ready --> Attack: ataque
         Attack --> Ready: termina animacion
+        Ready --> RangedAttack: shuriken disponible
+        RangedAttack --> Ready: termina animacion
     }
 ```
 
 `Jump` y `Fall` reproducen directamente sus estados del Animator mediante
-`Animator.Play()`. Mientras `Attack` esta activo, esos cambios visuales se posponen
-para no interrumpir el golpe; la fisica aerea continua ejecutandose normalmente.
+`Animator.Play()`. Mientras `Attack` o `RangedAttack` estan activos, esos cambios
+visuales se posponen para no interrumpir la accion; la fisica aerea continua
+ejecutandose normalmente.
+
+## Ataque shuriken
+
+La accion a distancia usa el mismo State Pattern que el ataque de espada, pero la
+creacion del proyectil se delega a `PlayerShurikenCombat`. El clip `throw` llama a
+`OnRangedAttackRelease()` en el frame de salida y a
+`OnRangedAttackAnimationFinished()` al terminar.
+
+Cada shuriken sale desde `ShurikenFirePoint`, conserva la direccion en la que miraba
+el jugador, avanza con `Rigidbody2D` y rota durante el trayecto. Al tocar un enemigo,
+una pared o al vencer su vida util, se desactiva y vuelve a `ComponentPool<T>` en vez
+de destruirse. La capacidad actual es de cuatro instancias simultaneas.
+
+Bindings actuales:
+
+- Teclado: `X`.
+- Gamepad: boton norte.
+- Joystick generico: boton 2.
 
 ## Salto asistido
 
@@ -251,6 +283,8 @@ PlayerMovement
   contiene PlayerLocomotion
   contiene PlayerAnimationController
   contiene PlayerDamageReaction
+  contiene PlayerShurikenCombat
+  contiene ComponentPool<PlayerShurikenProjectile>
 ```
 
 Ninguna de esas clases hereda de `PlayerMovement`. Cada una aporta una capacidad y
@@ -267,6 +301,7 @@ donde se crean los objetos y se conectan sus dependencias.
 - `PlayerInputReader` no contiene reglas de gameplay.
 - `PlayerAnimationController` no decide fisica.
 - La locomocion compartida no debe copiarse dentro de cada estado.
+- Los proyectiles comparten `ComponentPool<T>` sin compartir sus reglas de impacto.
 - Los valores ajustables deben permanecer serializados en `PlayerMovement` y pasar a `Settings`.
 - Las clases auxiliares permanecen `internal` porque son detalles de implementacion del juego.
 - `IState` y `StateMachine` viven en `Core/StateMachine` y se reutilizan por composicion.

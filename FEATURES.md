@@ -18,6 +18,7 @@ Pulir un juego 2D hecho en Unity/C# hasta dejarlo como una muestra jugable que c
 - Movimiento horizontal.
 - Salto.
 - Ataque con espada durante carrera, salto y caida.
+- Ataque de shuriken durante carrera, salto y caida.
 - Sistema de vida mediante componente `Health`.
 - Danio mediante ataques enemigos y trampas.
 - Knockback al recibir danio.
@@ -170,7 +171,7 @@ Implementado:
 - Variantes separadas para melee, ranged y carrera por contacto.
 - Trigger reutilizable que genera al HellHound delante del jugador y en sentido contrario.
 - Proyectil enemigo con direccion, velocidad, dano y vida util configurables.
-- Pool limitado de proyectiles reutilizables para evitar instanciaciones por disparo.
+- Pool generico y limitado de proyectiles reutilizables para evitar instanciaciones por disparo.
 - Proyectiles enemigos que atraviesan otros enemigos.
 - HellHound con limpieza al colisionar lateralmente contra una pared.
 - Fallback temporizado para animaciones sin evento de finalizacion.
@@ -189,6 +190,40 @@ Criterios de prueba:
 - El enemigo no se queda pegado de forma rara al player.
 - El jugador entiende cuando golpeo y cuando recibio danio.
 - La muerte del enemigo no duplica eventos ni drops.
+
+### Iteracion 3.5: ataque shuriken
+
+Estado: en progreso.
+
+Objetivo:
+
+Agregar una opcion a distancia que conviva con el movimiento y sirva como base para
+futuras mejoras de combate, pickups o recursos limitados.
+
+Implementado:
+
+- Accion `RangedAttack` independiente de la maquina de locomocion.
+- Input con `X`, boton norte de gamepad y boton 2 de joystick generico.
+- Animacion `throw` de siete frames con eventos de lanzamiento y finalizacion.
+- Lanzamiento durante carrera, salto y caida sin detener la fisica del jugador.
+- Shuriken con velocidad, rotacion, dano, cooldown y vida util configurables.
+- Desactivacion al impactar enemigos o superficies solidas.
+- Reutilizacion mediante `ComponentPool<T>` con un maximo de cuatro activos.
+- Punto de lanzamiento y prefab configurados en el prefab del jugador.
+
+Pendiente:
+
+- Probar el lanzamiento a izquierda y derecha con teclado y joystick.
+- Confirmar impactos contra Skeleton, Demon y paredes de Tilemap.
+- Ajustar velocidad, escala, rotacion y frame exacto de salida segun game feel.
+- Decidir mas adelante si el shuriken se desbloquea, consume municion o usa un recurso.
+
+Criterios de prueba:
+
+- La animacion no interrumpe el control terrestre ni aereo.
+- El proyectil siempre sale hacia el lado visual correcto.
+- Ningun impacto deja shurikenes activos fuera del escenario.
+- El limite del pool evita crear instancias sin control.
 
 ### Iteracion 4: audio y feedback
 

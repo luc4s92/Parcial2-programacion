@@ -12,14 +12,14 @@ public sealed class RangedEnemy : EnemyController
     [SerializeField] private int projectilePoolCapacity = 8;
 
     private EnemyTargeting targeting;
-    private EnemyProjectilePool projectilePool;
+    private ComponentPool<EnemyProjectile> projectilePool;
     private EnemyRangedCombat combat;
     private EnemyRangedIdleState idleState;
     private EnemyRangedAttackState attackState;
 
     private protected override IState CreateInitialState()
     {
-        projectilePool = new EnemyProjectilePool(
+        projectilePool = new ComponentPool<EnemyProjectile>(
             projectilePrefab,
             projectilePoolCapacity
         );
