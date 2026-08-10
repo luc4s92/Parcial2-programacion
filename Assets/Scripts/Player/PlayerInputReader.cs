@@ -6,15 +6,18 @@ public sealed class PlayerInputReader : MonoBehaviour
 {
     private const string GameplayMapName = "Gameplay";
     private const string MoveActionName = "Move";
+    private const string DownActionName = "Down";
     private const string JumpActionName = "Jump";
     private const string AttackActionName = "Attack";
 
     private InputActionMap gameplayActions;
     private InputAction moveAction;
+    private InputAction downAction;
     private InputAction jumpAction;
     private InputAction attackAction;
 
     internal float MoveX => Mathf.Clamp(moveAction.ReadValue<float>(), -1f, 1f);
+    internal bool DownHeld => downAction.IsPressed();
     internal bool JumpPressed => jumpAction.WasPressedThisFrame();
     internal bool JumpHeld => jumpAction.IsPressed();
     internal bool JumpReleased => jumpAction.WasReleasedThisFrame();
@@ -33,6 +36,7 @@ public sealed class PlayerInputReader : MonoBehaviour
 
         gameplayActions = inputActions.FindActionMap(GameplayMapName, true);
         moveAction = gameplayActions.FindAction(MoveActionName, true);
+        downAction = gameplayActions.FindAction(DownActionName, true);
         jumpAction = gameplayActions.FindAction(JumpActionName, true);
         attackAction = gameplayActions.FindAction(AttackActionName, true);
 

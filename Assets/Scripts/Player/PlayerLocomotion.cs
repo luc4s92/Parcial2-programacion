@@ -2,6 +2,13 @@ using UnityEngine;
 
 internal sealed class PlayerLocomotion
 {
+    internal enum GroundedTickResult
+    {
+        None,
+        Jumped,
+        DroppedThroughPlatform
+    }
+
     internal readonly struct Settings
     {
         internal readonly float JumpForce;
@@ -18,6 +25,8 @@ internal sealed class PlayerLocomotion
         internal readonly float FallGravityMultiplier;
         internal readonly float LowJumpGravityMultiplier;
         internal readonly float MaxFallSpeed;
+        internal readonly float DropThroughSpeed;
+        internal readonly float DropThroughMaxDuration;
 
         internal Settings(
             float jumpForce,
@@ -33,7 +42,9 @@ internal sealed class PlayerLocomotion
             float jumpCutMultiplier,
             float fallGravityMultiplier,
             float lowJumpGravityMultiplier,
-            float maxFallSpeed)
+            float maxFallSpeed,
+            float dropThroughSpeed,
+            float dropThroughMaxDuration)
         {
             JumpForce = jumpForce;
             GroundAcceleration = groundAcceleration;
@@ -49,6 +60,8 @@ internal sealed class PlayerLocomotion
             FallGravityMultiplier = fallGravityMultiplier;
             LowJumpGravityMultiplier = lowJumpGravityMultiplier;
             MaxFallSpeed = maxFallSpeed;
+            DropThroughSpeed = dropThroughSpeed;
+            DropThroughMaxDuration = dropThroughMaxDuration;
         }
     }
 
@@ -89,15 +102,18 @@ internal sealed class PlayerLocomotion
         movementPhysics.ResetGravity();
     }
 
-    internal bool TickGrounded()
+    internal GroundedTickResult TickGrounded()
     {
         TickMovementAndJumpBuffer();
 
-        bool jumped = TryJump();
-        if (!jumped)
-            movementPhysics.ResetGravity();
+        if (TryDropThroughPlatform())
+            return GroundedTickResult.DroppedThroughPlatform;
 
-        return jumped;
+        if (TryJump())
+            return GroundedTickResult.Jumped;
+
+        movementPhysics.ResetGravity();
+        return GroundedTickResult.None;
     }
 
     internal void TickJump()
@@ -151,5 +167,27 @@ internal sealed class PlayerLocomotion
     private bool TryJump()
     {
         return movementPhysics.TryJump(settings.JumpForce);
+    }
+
+    private bool TryDropThroughPlatform()
+    {
+        if (!inputReader.DownHeld || !inputReader.JumpPressed)
+            return false;
+
+        Collider2D groundCollider = movementPhysics.GroundCollider;
+        if (groundCollider == null || !groundCollider.TryGetComponent(out OneWayPlatform _))
+            return false;
+
+        movementPhysics.BeginDropThroughPlatform(
+            groundCollider,
+            settings.DropThroughSpeed,
+            settings.DropThroughMaxDuration
+        );
+        return true;
+    }
+
+    internal void RestorePlatformCollision()
+    {
+        movementPhysics.RestorePlatformCollision();
     }
 }

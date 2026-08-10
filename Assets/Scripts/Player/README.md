@@ -32,13 +32,14 @@ La locomocion y las acciones avanzan en paralelo sin competir por un unico estad
 | Script | Responsabilidad |
 | --- | --- |
 | `PlayerMovement` | Coordina los componentes de Unity, crea las dependencias y solicita cambios de estado. |
-| `PlayerInputReader` | Traduce Input System a intenciones como mover, saltar y atacar. |
+| `PlayerInputReader` | Traduce Input System a intenciones como mover, bajar, saltar y atacar. |
 | `PlayerLocomotion` | Contiene las reglas compartidas de movimiento y salto. |
 | `PlayerMovementPhysics` | Modifica el `Rigidbody2D`, gravedad, velocidad y deteccion de suelo. |
 | `PlayerAnimationController` | Encapsula parametros y estados del Animator. |
 | `PlayerDamageReaction` | Ejecuta feedback, knockback y muerte. |
 | `PlayerSpeedModifier` | Mantiene la velocidad base y modificadores temporales. |
 | `PlayerAudio` | Reproduce los sonidos locales del jugador. |
+| `OneWayPlatform` | Marca y configura una plataforma que se atraviesa desde abajo o con abajo + salto. |
 | `StateMachine` | Mantiene un estado activo por instancia y ejecuta su ciclo de vida. |
 
 ## Ejecucion por frame
@@ -88,7 +89,7 @@ Esto reduce el acoplamiento entre cada estado y el coordinador.
 - Ejecuta movimiento horizontal terrestre.
 - Actualiza el jump buffer.
 - Cambia a `Jump` cuando la fisica acepta el salto.
-- Cambia a `Fall` cuando pierde el suelo.
+- Cambia a `Fall` cuando pierde el suelo o atraviesa una plataforma hacia abajo.
 
 ### Jump
 
@@ -138,7 +139,7 @@ stateDiagram-v2
     state Locomocion {
         [*] --> Grounded
         Grounded --> Jump: salto aceptado
-        Grounded --> Fall: pierde el suelo
+        Grounded --> Fall: pierde el suelo o abajo + salto
         Jump --> Fall: velocidad vertical <= 0
         Fall --> Jump: coyote time o jump buffer
         Fall --> Grounded: aterriza
@@ -174,6 +175,30 @@ El salto variable utiliza dos ajustes:
 
 La caida utiliza `fallGravityMultiplier` y limita la velocidad mediante
 `maxFallSpeed`.
+
+## Descenso por plataformas
+
+Al mantener abajo y presionar salto sobre un objeto con `OneWayPlatform`, el flujo es:
+
+1. `PlayerInputReader` detecta `Down` y la pulsacion de `Jump`.
+2. `PlayerLocomotion` valida que el suelo actual sea una plataforma atravesable.
+3. `PlayerMovementPhysics` ignora temporalmente solo la colision entre ambos colliders.
+4. `Grounded` solicita la transicion a `Fall`, que reutiliza el control aereo y la gravedad existentes.
+5. La colision se restaura cuando el jugador queda debajo de la plataforma o vence el tiempo de seguridad.
+
+No existe un estado `Drop` separado porque el comportamiento sostenido ya corresponde a
+`Fall`; el descenso es una accion de transicion, no un estado con reglas propias por frame.
+
+Bindings actuales:
+
+- Teclado: `S` o flecha abajo + `Espacio`.
+- Gamepad: stick izquierdo o D-pad hacia abajo + boton sur.
+- Joystick generico: stick hacia abajo + trigger.
+
+Para configurar una plataforma, su `Collider2D` y `OneWayPlatform` deben estar en el
+mismo GameObject. El componente agrega y configura `PlatformEffector2D`. Si se usan
+Tilemaps, las plataformas atravesables deben estar en un Tilemap separado: marcar el
+Tilemap principal volveria atravesable todo su collider.
 
 ## Composicion
 

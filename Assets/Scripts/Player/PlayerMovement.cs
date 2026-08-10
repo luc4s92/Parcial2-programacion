@@ -27,6 +27,12 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [SerializeField] private float lowJumpGravityMultiplier = 1.6f;
     [SerializeField] private float maxFallSpeed = 14f;
 
+    [Header("Plataformas atravesables")]
+    [Min(0.01f)]
+    [SerializeField] private float dropThroughSpeed = 3f;
+    [Min(0.01f)]
+    [SerializeField] private float dropThroughMaxDuration = 1f;
+
     [Header("Combate")]
     [SerializeField] private float collitionForce = 6f;
     [SerializeField] private float knockbackDuration = 0.25f;
@@ -53,10 +59,15 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private void Awake()
     {
         Rigidbody2D rigidBody = GetComponent<Rigidbody2D>();
+        Collider2D playerCollider = GetComponent<Collider2D>();
         PlayerInputReader inputReader = GetComponent<PlayerInputReader>();
         health = GetComponent<Health>();
 
-        PlayerMovementPhysics movementPhysics = new PlayerMovementPhysics(rigidBody, transform);
+        PlayerMovementPhysics movementPhysics = new PlayerMovementPhysics(
+            rigidBody,
+            transform,
+            playerCollider
+        );
         animationController = new PlayerAnimationController(animator, transform);
         speedModifier = new PlayerSpeedModifier(playerSpeed);
 
@@ -74,7 +85,9 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             jumpCutMultiplier: jumpCutMultiplier,
             fallGravityMultiplier: fallGravityMultiplier,
             lowJumpGravityMultiplier: lowJumpGravityMultiplier,
-            maxFallSpeed: maxFallSpeed
+            maxFallSpeed: maxFallSpeed,
+            dropThroughSpeed: dropThroughSpeed,
+            dropThroughMaxDuration: dropThroughMaxDuration
         );
 
         locomotion = new PlayerLocomotion(
@@ -144,11 +157,18 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void OnDestroy()
     {
+        locomotion?.RestorePlatformCollision();
+
         if (health == null) return;
 
         health.OnLifeChanged -= OnLifeChanged;
         health.OnDamaged -= OnDamaged;
         health.OnDeath -= OnDeath;
+    }
+
+    private void OnDisable()
+    {
+        locomotion?.RestorePlatformCollision();
     }
 
     private void ChangeToGroundedState()
@@ -207,6 +227,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void OnDeath()
     {
+        locomotion.RestorePlatformCollision();
         CancelCurrentAction();
         locomotionStateMachine.ChangeState(deadState);
     }

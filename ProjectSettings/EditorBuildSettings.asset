@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/WinnerScreen.unity
     guid: 946b199554f6cd8418ea550ecc7d0a11
+  - enabled: 0
+    path: Assets/Scenes/Playtests/MetroidvaniaMovementTest.unity
+    guid: 66472585c1398ae4fa2cded2a178a207
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 60d51a7c28214ea5a65a9b2af83de67f, type: 3}
   m_UseUCBPForAssetBundles: 0
