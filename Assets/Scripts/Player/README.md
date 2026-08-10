@@ -17,6 +17,8 @@ flowchart LR
     InputReader --> ActionState
     LocomotionState --> Locomotion[PlayerLocomotion]
     Locomotion --> Physics[PlayerMovementPhysics]
+    Physics --> GroundDetector[PlayerGroundDetector]
+    GroundDetector --> BodyCollider[Collider2D.Cast]
     Physics --> Rigidbody[Rigidbody2D]
     LocomotionState --> Animation[PlayerAnimationController]
     ActionState --> Animation
@@ -34,7 +36,8 @@ La locomocion y las acciones avanzan en paralelo sin competir por un unico estad
 | `PlayerMovement` | Coordina los componentes de Unity, crea las dependencias y solicita cambios de estado. |
 | `PlayerInputReader` | Traduce Input System a intenciones como mover, bajar, saltar y atacar. |
 | `PlayerLocomotion` | Contiene las reglas compartidas de movimiento y salto. |
-| `PlayerMovementPhysics` | Modifica el `Rigidbody2D`, gravedad, velocidad y deteccion de suelo. |
+| `PlayerMovementPhysics` | Modifica el `Rigidbody2D`, gravedad, velocidad y colisiones temporales. |
+| `PlayerGroundDetector` | Detecta apoyo con la forma del collider y rechaza superficies laterales por su normal. |
 | `PlayerAnimationController` | Encapsula parametros y estados del Animator. |
 | `PlayerDamageReaction` | Ejecuta feedback, knockback y muerte. |
 | `PlayerSpeedModifier` | Mantiene la velocidad base y modificadores temporales. |
@@ -47,7 +50,7 @@ La locomocion y las acciones avanzan en paralelo sin competir por un unico estad
 `PlayerMovement.Update()` realiza este orden:
 
 1. Actualiza la duracion de los modificadores de velocidad.
-2. Comprueba el suelo mediante `PlayerLocomotion.UpdateGroundState()`.
+2. Comprueba el suelo mediante un `Collider2D.Cast` corto desde todo el collider corporal.
 3. Ejecuta la maquina de locomocion.
 4. Si no existe knockback, ejecuta la maquina de acciones.
 5. Cada estado activo decide su comportamiento y sus transiciones.
@@ -160,21 +163,54 @@ para no interrumpir el golpe; la fisica aerea continua ejecutandose normalmente.
 
 ## Salto asistido
 
-`PlayerMovementPhysics` mantiene dos contadores:
+El sistema mantiene tres ventanas temporales:
 
 - `coyoteCounter`: permite saltar durante un instante despues de abandonar el suelo.
 - `jumpBufferCounter`: recuerda una pulsacion realizada poco antes de aterrizar.
+- `variableJumpTimeRemaining`: limita cuanto tiempo puede recortarse un salto al soltar el boton.
 
 `TryJump()` solo aplica el impulso cuando ambos contadores permiten el salto. Al
 saltar, consume los contadores para evitar saltos duplicados.
 
-El salto variable utiliza dos ajustes:
+El salto variable utiliza cuatro ajustes:
 
+- `variableJumpDuration`: tiempo breve durante el cual soltar el boton produce un salto corto.
 - `jumpCutMultiplier`: reduce la velocidad vertical cuando se suelta el boton.
-- `lowJumpGravityMultiplier`: aumenta la gravedad si no se mantiene el salto.
+- `lowJumpGravityMultiplier`: aumenta la gravedad despues de recortar el salto.
+- `riseGravityMultiplier`: evita un ascenso largo y flotante durante el salto sostenido.
 
 La caida utiliza `fallGravityMultiplier` y limita la velocidad mediante
 `maxFallSpeed`.
+
+Mantener salto durante `variableJumpDuration` garantiza el salto completo; no hace
+falta sostener el boton hasta el apice. El perfil actual prioriza respuesta sobre
+inercia y permite corregir la direccion en el aire sin volverla instantanea.
+
+### Perfil actual de salto
+
+| Ajuste | Valor | Intencion |
+| --- | ---: | --- |
+| `jumpForce` | `9` | Conservar altura suficiente para las metricas actuales. |
+| `variableJumpDuration` | `0.2 s` | Alcanzar el salto completo sin sostener el boton hasta el apice. |
+| `riseGravityMultiplier` | `1.35` | Mantener un ascenso controlable sin sensacion flotante. |
+| `jumpCutMultiplier` | `0.55` | Diferenciar el salto corto sin volverlo abrupto. |
+| `lowJumpGravityMultiplier` | `1.8` | Acelerar el cierre de un salto recortado. |
+| `fallGravityMultiplier` | `3.2` | Comprimir la caida para aterrizar y volver a saltar antes. |
+| `maxFallSpeed` | `14` | Limitar descensos largos sin afectar el arco normal. |
+
+El aumento de `fallGravityMultiplier` modifica solamente la segunda mitad del arco:
+no reduce la altura maxima ni cambia la ventana de salto variable. `maxFallSpeed`
+permanece sin cambios hasta evaluar pozos y descensos largos por separado.
+
+## Deteccion de suelo y bordes
+
+`PlayerGroundDetector` usa la forma real del collider corporal en lugar de una linea
+vertical desde el pivot. Los resultados se filtran por layer y por angulo de la
+normal: una superficie que apunta hacia arriba puede ser suelo, una pared lateral no.
+
+El cast reutiliza un arreglo fijo para no generar asignaciones por frame. El material
+`PlayerNoFriction` evita que el cuerpo quede sostenido por friccion contra una pared;
+un apoyo real sigue siendo detectado por la forma completa del collider.
 
 ## Descenso por plataformas
 
@@ -227,6 +263,7 @@ donde se crean los objetos y se conectan sus dependencias.
 
 - Los estados deciden transiciones, pero no modifican directamente el Rigidbody.
 - `PlayerMovementPhysics` no lee input ni decide estados.
+- `PlayerGroundDetector` no modifica velocidad, gravedad ni estados.
 - `PlayerInputReader` no contiene reglas de gameplay.
 - `PlayerAnimationController` no decide fisica.
 - La locomocion compartida no debe copiarse dentro de cada estado.

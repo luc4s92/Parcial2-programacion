@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Health))]
@@ -8,23 +9,29 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour, IDamageable
 {
     [Header("Movimiento")]
-    [SerializeField] private float jumpForce = 8f;
-    [SerializeField] private float playerSpeed = 5f;
+    [SerializeField] private float jumpForce = 9f;
+    [SerializeField] private float playerSpeed = 6f;
     [SerializeField] private float groundAcceleration = 45f;
     [SerializeField] private float groundDeceleration = 55f;
-    [SerializeField] private float airAcceleration = 24f;
-    [SerializeField] private float airDeceleration = 12f;
+    [SerializeField] private float airAcceleration = 40f;
+    [SerializeField] private float airDeceleration = 26f;
     [Range(0f, 1f)]
-    [SerializeField] private float airControlMultiplier = 0.7f;
-    [SerializeField] private float longitudRaycast = 0.1f;
+    [SerializeField] private float airControlMultiplier = 0.9f;
+    [FormerlySerializedAs("longitudRaycast")]
+    [Min(0.01f)]
+    [SerializeField] private float groundCheckDistance = 0.08f;
+    [Range(0f, 89f)]
+    [SerializeField] private float maxGroundAngle = 50f;
     [SerializeField] private LayerMask floorLayer;
 
     [Header("Salto")]
     [SerializeField] private float coyoteTime = 0.12f;
     [SerializeField] private float jumpBufferTime = 0.12f;
-    [SerializeField] private float jumpCutMultiplier = 0.45f;
-    [SerializeField] private float fallGravityMultiplier = 2.2f;
-    [SerializeField] private float lowJumpGravityMultiplier = 1.6f;
+    [SerializeField] private float variableJumpDuration = 0.2f;
+    [SerializeField] private float riseGravityMultiplier = 1.35f;
+    [SerializeField] private float jumpCutMultiplier = 0.55f;
+    [SerializeField] private float fallGravityMultiplier = 3.2f;
+    [SerializeField] private float lowJumpGravityMultiplier = 1.8f;
     [SerializeField] private float maxFallSpeed = 14f;
 
     [Header("Plataformas atravesables")]
@@ -63,10 +70,11 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         PlayerInputReader inputReader = GetComponent<PlayerInputReader>();
         health = GetComponent<Health>();
 
+        PlayerGroundDetector groundDetector = new PlayerGroundDetector(playerCollider);
         PlayerMovementPhysics movementPhysics = new PlayerMovementPhysics(
             rigidBody,
-            transform,
-            playerCollider
+            playerCollider,
+            groundDetector
         );
         animationController = new PlayerAnimationController(animator, transform);
         speedModifier = new PlayerSpeedModifier(playerSpeed);
@@ -78,10 +86,13 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             airAcceleration: airAcceleration,
             airDeceleration: airDeceleration,
             airControlMultiplier: airControlMultiplier,
-            raycastLength: longitudRaycast,
+            groundCheckDistance: groundCheckDistance,
+            maxGroundAngle: maxGroundAngle,
             floorLayer: floorLayer,
             coyoteTime: coyoteTime,
             jumpBufferTime: jumpBufferTime,
+            variableJumpDuration: variableJumpDuration,
+            riseGravityMultiplier: riseGravityMultiplier,
             jumpCutMultiplier: jumpCutMultiplier,
             fallGravityMultiplier: fallGravityMultiplier,
             lowJumpGravityMultiplier: lowJumpGravityMultiplier,
@@ -271,8 +282,24 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void OnDrawGizmos()
     {
+        Collider2D bodyCollider = GetComponent<Collider2D>();
+        if (bodyCollider == null)
+            return;
+
+        Bounds bounds = bodyCollider.bounds;
+        Vector3 checkCenter = new Vector3(
+            bounds.center.x,
+            bounds.min.y - groundCheckDistance * 0.5f,
+            transform.position.z
+        );
+        Vector3 checkSize = new Vector3(
+            bounds.size.x,
+            groundCheckDistance,
+            0f
+        );
+
         Gizmos.color = Color.red;
-        Gizmos.DrawLine(transform.position, transform.position + Vector3.down * longitudRaycast);
+        Gizmos.DrawWireCube(checkCenter, checkSize);
     }
 
     private void CancelCurrentAction()

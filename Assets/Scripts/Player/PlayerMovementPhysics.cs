@@ -3,13 +3,15 @@ using UnityEngine;
 internal sealed class PlayerMovementPhysics
 {
     private readonly Rigidbody2D rigidBody;
-    private readonly Transform transform;
     private readonly Collider2D playerCollider;
+    private readonly PlayerGroundDetector groundDetector;
     private readonly float defaultGravityScale;
 
     private float coyoteCounter;
     private float jumpBufferCounter;
+    private float variableJumpTimeRemaining;
     private float dropThroughTimeRemaining;
+    private bool jumpWasCut;
     private Collider2D ignoredPlatformCollider;
 
     internal bool IsGrounded { get; private set; }
@@ -19,16 +21,27 @@ internal sealed class PlayerMovementPhysics
 
     internal PlayerMovementPhysics(
         Rigidbody2D rigidBody,
-        Transform transform,
-        Collider2D playerCollider)
+        Collider2D playerCollider,
+        PlayerGroundDetector groundDetector)
     {
         this.rigidBody = rigidBody;
-        this.transform = transform;
         this.playerCollider = playerCollider;
+        this.groundDetector = groundDetector;
         defaultGravityScale = rigidBody.gravityScale;
+
+        PhysicsMaterial2D movementMaterial = playerCollider.sharedMaterial;
+        if (movementMaterial != null)
+        {
+            movementMaterial.frictionCombine = PhysicsMaterialCombine2D.Minimum;
+            movementMaterial.bounceCombine = PhysicsMaterialCombine2D.Minimum;
+        }
     }
 
-    internal void UpdateGroundState(float raycastLength, LayerMask floorLayer, float coyoteTime)
+    internal void UpdateGroundState(
+        float groundCheckDistance,
+        LayerMask floorLayer,
+        float coyoteTime,
+        float maxGroundAngle)
     {
         if (UpdateDropThroughPlatform())
         {
@@ -38,9 +51,15 @@ internal sealed class PlayerMovementPhysics
             return;
         }
 
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, raycastLength, floorLayer);
-        GroundCollider = IsValidGroundHit(hit) ? hit.collider : null;
-        IsGrounded = GroundCollider != null;
+        bool foundGround = groundDetector.TryGetGround(
+            groundCheckDistance,
+            floorLayer,
+            maxGroundAngle,
+            VerticalSpeed,
+            out RaycastHit2D groundHit
+        );
+        GroundCollider = foundGround ? groundHit.collider : null;
+        IsGrounded = foundGround;
 
         if (IsGrounded)
             coyoteCounter = coyoteTime;
@@ -125,7 +144,7 @@ internal sealed class PlayerMovementPhysics
         rigidBody.linearVelocity = new Vector2(horizontalVelocity, rigidBody.linearVelocity.y);
     }
 
-    internal bool TryJump(float jumpForce)
+    internal bool TryJump(float jumpForce, float variableJumpDuration)
     {
         if (jumpBufferCounter <= 0f || coyoteCounter <= 0f) return false;
 
@@ -134,36 +153,48 @@ internal sealed class PlayerMovementPhysics
 
         jumpBufferCounter = 0f;
         coyoteCounter = 0f;
+        variableJumpTimeRemaining = variableJumpDuration;
+        jumpWasCut = false;
         IsGrounded = false;
         return true;
     }
 
     internal void ApplyJumpRiseGravity(
         bool jumpHeld,
-        bool jumpReleased,
+        float riseGravityMultiplier,
         float jumpCutMultiplier,
         float lowJumpGravityMultiplier)
     {
-        if (rigidBody.linearVelocity.y > 0f && !jumpHeld)
+        if (rigidBody.linearVelocity.y <= 0f)
         {
-            rigidBody.gravityScale = defaultGravityScale * lowJumpGravityMultiplier;
-        }
-        else
-        {
+            variableJumpTimeRemaining = 0f;
             ResetGravity();
+            return;
         }
 
-        if (jumpReleased && rigidBody.linearVelocity.y > 0f)
+        if (!jumpHeld && variableJumpTimeRemaining > 0f && !jumpWasCut)
         {
             rigidBody.linearVelocity = new Vector2(
                 rigidBody.linearVelocity.x,
                 rigidBody.linearVelocity.y * jumpCutMultiplier
             );
+            jumpWasCut = true;
         }
+
+        variableJumpTimeRemaining = Mathf.Max(
+            0f,
+            variableJumpTimeRemaining - Time.deltaTime
+        );
+        float gravityMultiplier = jumpWasCut
+            ? lowJumpGravityMultiplier
+            : riseGravityMultiplier;
+        rigidBody.gravityScale = defaultGravityScale * gravityMultiplier;
     }
 
     internal void ApplyFallGravity(float fallGravityMultiplier, float maxFallSpeed)
     {
+        variableJumpTimeRemaining = 0f;
+
         if (IsGrounded)
         {
             ResetGravity();
@@ -221,19 +252,4 @@ internal sealed class PlayerMovementPhysics
         return true;
     }
 
-    private bool IsValidGroundHit(RaycastHit2D hit)
-    {
-        if (hit.collider == null)
-            return false;
-
-        if (!hit.collider.TryGetComponent(out OneWayPlatform _))
-            return true;
-
-        const float surfaceTolerance = 0.05f;
-        bool isFallingOrStill = rigidBody.linearVelocity.y <= 0f;
-        bool feetAreAboveSurface =
-            playerCollider.bounds.min.y >= hit.collider.bounds.max.y - surfaceTolerance;
-
-        return isFallingOrStill && feetAreAboveSurface;
-    }
 }

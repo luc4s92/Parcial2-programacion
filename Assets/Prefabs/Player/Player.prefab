@@ -726,7 +726,7 @@ BoxCollider2D:
   m_GameObject: {fileID: 6853090505097361413}
   m_Enabled: 1
   m_Density: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 5d0c09337ad24c5eb998b636f27705e4, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -801,12 +801,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2d1f214081f66940b902c29eb55e35c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpForce: 8
+  jumpForce: 9
   playerSpeed: 6
-  longitudRaycast: 2.21
+  groundAcceleration: 45
+  groundDeceleration: 55
+  airAcceleration: 40
+  airDeceleration: 26
+  airControlMultiplier: 0.9
+  groundCheckDistance: 0.08
+  maxGroundAngle: 50
   floorLayer:
     serializedVersion: 2
     m_Bits: 8
+  coyoteTime: 0.12
+  jumpBufferTime: 0.12
+  variableJumpDuration: 0.2
+  riseGravityMultiplier: 1.35
+  jumpCutMultiplier: 0.55
+  fallGravityMultiplier: 3.2
+  lowJumpGravityMultiplier: 1.8
+  maxFallSpeed: 14
+  dropThroughSpeed: 3
+  dropThroughMaxDuration: 1
   collitionForce: 6
   knockbackDuration: 0.25
   deathDelay: 4

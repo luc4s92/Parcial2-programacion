@@ -35,6 +35,12 @@ reincorporarse al recorrido superior.
 - Retrocesos, dudas o rutas que no se perciben como conectadas.
 - Diferencias de sensacion entre teclado y joystick.
 - Si el descenso por la plataforma verde responde igual con teclado, D-pad y stick.
+- Si invertir la direccion en el aire permite corregir un error sin eliminar el compromiso del salto.
+- Si el apice se percibe claro pero no genera una pausa flotante.
+- Si aterrizar con una parte pequena del collider sobre un borde conserva `Grounded`.
+- Si empujar contra una pared permite deslizarse hacia abajo sin quedar suspendido.
+- Si una pulsacion breve y una de 0.2 segundos producen alturas diferentes y previsibles.
+- Si la caida mas rapida permite encadenar plataformas sin perder demasiado control aereo.
 
 Conviene probar primero sin ajustar valores. Despues de una vuelta, cambiar una sola
 variable por vez y repetir el mismo recorrido.
@@ -43,6 +49,7 @@ variable por vez y repetir el mismo recorrido.
 
 - Una vuelta completa dura entre dos y cuatro minutos durante las primeras pruebas.
 - Todos los saltos principales admiten margen de correccion.
+- Los bordes no dejan al jugador suspendido con la animacion de caida.
 - Fallar la ruta superior conduce a la ruta inferior, no a reiniciar la prueba.
 - El Demon puede enfrentarse desde mas de una altura.
 - La plataforma verde central se atraviesa con abajo + salto y vuelve a colisionar al caer debajo.

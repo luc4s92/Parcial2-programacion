@@ -120,6 +120,10 @@ Implementado:
 - Separacion entre lectura de input, reglas de locomocion, fisica y animacion.
 - Descenso por plataformas marcadas mediante abajo + salto con teclado y joystick.
 - Colision unidireccional reutilizable mediante `OneWayPlatform` y `PlatformEffector2D`.
+- Deteccion de suelo mediante `Collider2D.Cast`, filtro de normales y servicio dedicado.
+- Material corporal sin friccion para evitar que el jugador quede suspendido en paredes.
+- Ventana corta de salto variable que no exige sostener el boton hasta el apice.
+- Perfil de caida rapida separado del ascenso para encadenar saltos con menor espera.
 
 Pendiente:
 
@@ -128,7 +132,6 @@ Pendiente:
 - Ajustar los sprites o tiempos de Jump/Fall segun la prueba visual.
 - Probar ataque durante carrera, ascenso, apice, caida y aterrizaje.
 - Confirmar que knockback y muerte interrumpan correctamente el ataque.
-- Evaluar una deteccion de suelo mas robusta que el raycast actual.
 - Separar en un Tilemap propio las plataformas atravesables de los niveles definitivos.
 
 Criterios de prueba:
@@ -136,6 +139,8 @@ Criterios de prueba:
 - El jugador responde rapido sin sentirse rigido.
 - Saltar cerca del borde de una plataforma se siente justo.
 - Saltar apenas antes de tocar el piso funciona.
+- Apoyarse parcialmente en un borde mantiene el estado correcto.
+- Tocar una pared lateral no se interpreta como suelo ni detiene la caida.
 - La animacion acompania el movimiento sin cortes raros.
 
 ### Iteracion 3: enemigos y combate

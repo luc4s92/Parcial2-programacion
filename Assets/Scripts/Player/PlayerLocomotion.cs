@@ -17,10 +17,13 @@ internal sealed class PlayerLocomotion
         internal readonly float AirAcceleration;
         internal readonly float AirDeceleration;
         internal readonly float AirControlMultiplier;
-        internal readonly float RaycastLength;
+        internal readonly float GroundCheckDistance;
+        internal readonly float MaxGroundAngle;
         internal readonly LayerMask FloorLayer;
         internal readonly float CoyoteTime;
         internal readonly float JumpBufferTime;
+        internal readonly float VariableJumpDuration;
+        internal readonly float RiseGravityMultiplier;
         internal readonly float JumpCutMultiplier;
         internal readonly float FallGravityMultiplier;
         internal readonly float LowJumpGravityMultiplier;
@@ -35,10 +38,13 @@ internal sealed class PlayerLocomotion
             float airAcceleration,
             float airDeceleration,
             float airControlMultiplier,
-            float raycastLength,
+            float groundCheckDistance,
+            float maxGroundAngle,
             LayerMask floorLayer,
             float coyoteTime,
             float jumpBufferTime,
+            float variableJumpDuration,
+            float riseGravityMultiplier,
             float jumpCutMultiplier,
             float fallGravityMultiplier,
             float lowJumpGravityMultiplier,
@@ -52,10 +58,13 @@ internal sealed class PlayerLocomotion
             AirAcceleration = airAcceleration;
             AirDeceleration = airDeceleration;
             AirControlMultiplier = airControlMultiplier;
-            RaycastLength = raycastLength;
+            GroundCheckDistance = groundCheckDistance;
+            MaxGroundAngle = maxGroundAngle;
             FloorLayer = floorLayer;
             CoyoteTime = coyoteTime;
             JumpBufferTime = jumpBufferTime;
+            VariableJumpDuration = variableJumpDuration;
+            RiseGravityMultiplier = riseGravityMultiplier;
             JumpCutMultiplier = jumpCutMultiplier;
             FallGravityMultiplier = fallGravityMultiplier;
             LowJumpGravityMultiplier = lowJumpGravityMultiplier;
@@ -91,9 +100,10 @@ internal sealed class PlayerLocomotion
     internal void UpdateGroundState()
     {
         movementPhysics.UpdateGroundState(
-            settings.RaycastLength,
+            settings.GroundCheckDistance,
             settings.FloorLayer,
-            settings.CoyoteTime
+            settings.CoyoteTime,
+            settings.MaxGroundAngle
         );
     }
 
@@ -121,7 +131,7 @@ internal sealed class PlayerLocomotion
         TickMovementAndJumpBuffer();
         movementPhysics.ApplyJumpRiseGravity(
             inputReader.JumpHeld,
-            inputReader.JumpReleased,
+            settings.RiseGravityMultiplier,
             settings.JumpCutMultiplier,
             settings.LowJumpGravityMultiplier
         );
@@ -166,7 +176,10 @@ internal sealed class PlayerLocomotion
 
     private bool TryJump()
     {
-        return movementPhysics.TryJump(settings.JumpForce);
+        return movementPhysics.TryJump(
+            settings.JumpForce,
+            settings.VariableJumpDuration
+        );
     }
 
     private bool TryDropThroughPlatform()

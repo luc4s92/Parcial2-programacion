@@ -8816,15 +8816,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2946208151245649792, guid: efabc00be73b6bf43af219746f66f534, type: 3}
       propertyPath: playerSpeed
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 2946208151245649792, guid: efabc00be73b6bf43af219746f66f534, type: 3}
       propertyPath: collitionForce
       value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2946208151245649792, guid: efabc00be73b6bf43af219746f66f534, type: 3}
-      propertyPath: longitudRaycast
-      value: 2.25
+      propertyPath: groundCheckDistance
+      value: 0.08
       objectReference: {fileID: 0}
     - target: {fileID: 2946208151245649792, guid: efabc00be73b6bf43af219746f66f534, type: 3}
       propertyPath: floorLayer.m_Bits
