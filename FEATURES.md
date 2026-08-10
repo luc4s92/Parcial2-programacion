@@ -17,7 +17,7 @@ Pulir un juego 2D hecho en Unity/C# hasta dejarlo como una muestra jugable que c
 
 - Movimiento horizontal.
 - Salto.
-- Ataque con espada.
+- Ataque con espada durante carrera, salto y caida.
 - Sistema de vida mediante componente `Health`.
 - Danio mediante ataques enemigos y trampas.
 - Knockback al recibir danio.
@@ -114,6 +114,8 @@ Implementado:
 - Coyote time y jump buffer.
 - Salto variable y gravedad diferenciada para ascenso y caida.
 - Maquina de estados para Grounded, Jump, Fall, Attack, Knockback y Dead.
+- Maquinas independientes para locomocion y acciones concurrentes.
+- Ataque de espada sin detener el movimiento terrestre o aereo.
 - Animaciones separadas para ascenso y caida.
 - Separacion entre lectura de input, reglas de locomocion, fisica y animacion.
 
@@ -122,6 +124,8 @@ Pendiente:
 - Probar las transiciones Grounded -> Jump -> Fall -> Grounded en Unity.
 - Confirmar que coyote time y jump buffer no hayan sufrido regresiones.
 - Ajustar los sprites o tiempos de Jump/Fall segun la prueba visual.
+- Probar ataque durante carrera, ascenso, apice, caida y aterrizaje.
+- Confirmar que knockback y muerte interrumpan correctamente el ataque.
 - Evaluar una deteccion de suelo mas robusta que el raycast actual.
 
 Criterios de prueba:
