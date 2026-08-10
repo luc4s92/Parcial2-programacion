@@ -7,11 +7,13 @@ internal sealed class PlayerAnimationController
     private static readonly int AttackParameter = Animator.StringToHash("atack");
     private static readonly int DamageParameter = Animator.StringToHash("damage");
     private static readonly int DeathParameter = Animator.StringToHash("death");
+    private static readonly int AttackState = Animator.StringToHash("Base Layer.atack");
     private static readonly int JumpState = Animator.StringToHash("Base Layer.jump");
     private static readonly int FallState = Animator.StringToHash("Base Layer.fall");
 
     private readonly Animator animator;
     private readonly Transform playerTransform;
+    private bool isAttacking;
 
     internal PlayerAnimationController(Animator animator, Transform playerTransform)
     {
@@ -31,11 +33,15 @@ internal sealed class PlayerAnimationController
 
     internal void PlayJump()
     {
+        if (isAttacking) return;
+
         animator.Play(JumpState, 0, 0f);
     }
 
     internal void PlayFall()
     {
+        if (isAttacking) return;
+
         animator.Play(FallState, 0, 0f);
     }
 
@@ -49,7 +55,11 @@ internal sealed class PlayerAnimationController
 
     internal void SetAttacking(bool isAttacking)
     {
+        this.isAttacking = isAttacking;
         animator.SetBool(AttackParameter, isAttacking);
+
+        if (isAttacking)
+            animator.Play(AttackState, 0, 0f);
     }
 
     internal void SetDamaged(bool isDamaged)

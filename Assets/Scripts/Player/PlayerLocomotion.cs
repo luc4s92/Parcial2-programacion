@@ -18,7 +18,6 @@ internal sealed class PlayerLocomotion
         internal readonly float FallGravityMultiplier;
         internal readonly float LowJumpGravityMultiplier;
         internal readonly float MaxFallSpeed;
-        internal readonly float AttackBrakeDeceleration;
 
         internal Settings(
             float jumpForce,
@@ -34,8 +33,7 @@ internal sealed class PlayerLocomotion
             float jumpCutMultiplier,
             float fallGravityMultiplier,
             float lowJumpGravityMultiplier,
-            float maxFallSpeed,
-            float attackBrakeDeceleration)
+            float maxFallSpeed)
         {
             JumpForce = jumpForce;
             GroundAcceleration = groundAcceleration;
@@ -51,7 +49,6 @@ internal sealed class PlayerLocomotion
             FallGravityMultiplier = fallGravityMultiplier;
             LowJumpGravityMultiplier = lowJumpGravityMultiplier;
             MaxFallSpeed = maxFallSpeed;
-            AttackBrakeDeceleration = attackBrakeDeceleration;
         }
     }
 
@@ -126,25 +123,6 @@ internal sealed class PlayerLocomotion
             settings.MaxFallSpeed
         );
         return false;
-    }
-
-    internal void TickDuringAttack()
-    {
-        if (IsGrounded)
-        {
-            movementPhysics.Brake(settings.AttackBrakeDeceleration);
-            animationController.SetMovement(movementPhysics.HorizontalSpeed);
-        }
-
-        movementPhysics.ApplyFallGravity(
-            settings.FallGravityMultiplier,
-            settings.MaxFallSpeed
-        );
-    }
-
-    internal void ClearJumpBuffer()
-    {
-        movementPhysics.ClearJumpBuffer();
     }
 
     private void MoveHorizontally()

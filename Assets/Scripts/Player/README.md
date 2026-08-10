@@ -9,18 +9,23 @@ gameplay de la implementacion de fisica y de la presentacion visual.
 ```mermaid
 flowchart LR
     InputSystem[Input System] --> InputReader[PlayerInputReader]
-    PlayerMovement[PlayerMovement] --> StateMachine[StateMachine]
-    StateMachine --> CurrentState[Estado actual]
-    InputReader --> CurrentState
-    CurrentState --> Locomotion[PlayerLocomotion]
+    PlayerMovement[PlayerMovement] --> LocomotionMachine[StateMachine de locomocion]
+    PlayerMovement --> ActionMachine[StateMachine de acciones]
+    LocomotionMachine --> LocomotionState[Grounded / Jump / Fall]
+    ActionMachine --> ActionState[Ready / Attack]
+    InputReader --> LocomotionState
+    InputReader --> ActionState
+    LocomotionState --> Locomotion[PlayerLocomotion]
     Locomotion --> Physics[PlayerMovementPhysics]
     Physics --> Rigidbody[Rigidbody2D]
-    CurrentState --> Animation[PlayerAnimationController]
+    LocomotionState --> Animation[PlayerAnimationController]
+    ActionState --> Animation
     Animation --> Animator[Animator]
 ```
 
 `PlayerMovement` es el punto de entrada utilizado por Unity. Durante `Awake()` crea
-los servicios y estados, conecta sus dependencias y construye la maquina de estados.
+los servicios y estados, conecta sus dependencias y construye dos maquinas de estados.
+La locomocion y las acciones avanzan en paralelo sin competir por un unico estado.
 
 ## Responsabilidades
 
@@ -34,7 +39,7 @@ los servicios y estados, conecta sus dependencias y construye la maquina de esta
 | `PlayerDamageReaction` | Ejecuta feedback, knockback y muerte. |
 | `PlayerSpeedModifier` | Mantiene la velocidad base y modificadores temporales. |
 | `PlayerAudio` | Reproduce los sonidos locales del jugador. |
-| `StateMachine` | Mantiene un unico estado activo y ejecuta su ciclo de vida. |
+| `StateMachine` | Mantiene un estado activo por instancia y ejecuta su ciclo de vida. |
 
 ## Ejecucion por frame
 
@@ -42,12 +47,13 @@ los servicios y estados, conecta sus dependencias y construye la maquina de esta
 
 1. Actualiza la duracion de los modificadores de velocidad.
 2. Comprueba el suelo mediante `PlayerLocomotion.UpdateGroundState()`.
-3. Ejecuta `StateMachine.Tick()`.
-4. El estado actual decide que comportamiento ejecutar y si debe cambiar de estado.
-5. Actualiza el parametro de suelo del Animator.
+3. Ejecuta la maquina de locomocion.
+4. Si no existe knockback, ejecuta la maquina de acciones.
+5. Cada estado activo decide su comportamiento y sus transiciones.
+6. Actualiza el parametro de suelo del Animator.
 
-Solo el estado actual recibe `Tick()`. Las reglas de `Grounded`, `Jump` y `Fall` no
-se ejecutan simultaneamente.
+Cada maquina posee un solo estado activo. Locomocion y accion si se ejecutan en el
+mismo frame: por ejemplo, `Jump` puede convivir con `Attack`.
 
 ## Ciclo de un estado
 
@@ -83,7 +89,6 @@ Esto reduce el acoplamiento entre cada estado y el coordinador.
 - Actualiza el jump buffer.
 - Cambia a `Jump` cuando la fisica acepta el salto.
 - Cambia a `Fall` cuando pierde el suelo.
-- Permite comenzar un ataque.
 
 ### Jump
 
@@ -102,11 +107,17 @@ Esto reduce el acoplamiento entre cada estado y el coordinador.
 
 ### Attack
 
-- Limpia el jump buffer.
 - Activa el parametro de ataque y reproduce el sonido de espada.
-- Frena horizontalmente al jugador.
 - Termina mediante un Animation Event.
-- Al terminar vuelve a `Grounded` o `Fall` segun la posicion del jugador.
+- No modifica velocidad, gravedad, salto ni orientacion.
+- Puede convivir con `Grounded`, `Jump` o `Fall`.
+- Al terminar vuelve a `Ready` y restaura la animacion aerea si corresponde.
+
+### Ready
+
+- Espera la entrada de ataque sin modificar locomocion ni presentacion.
+- Cambia a `Attack` al presionar el boton de espada.
+- Es el punto de extension para el futuro ataque de shuriken.
 
 ### Knockback
 
@@ -124,22 +135,27 @@ Esto reduce el acoplamiento entre cada estado y el coordinador.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Grounded
-    Grounded --> Jump: salto aceptado
-    Grounded --> Fall: pierde el suelo
-    Grounded --> Attack: ataque
-    Jump --> Fall: velocidad vertical <= 0
-    Fall --> Jump: coyote time o jump buffer
-    Fall --> Grounded: aterriza
-    Attack --> Grounded: termina en suelo
-    Attack --> Fall: termina en aire
-    Knockback --> Grounded: termina en suelo
-    Knockback --> Fall: termina en aire
+    state Locomocion {
+        [*] --> Grounded
+        Grounded --> Jump: salto aceptado
+        Grounded --> Fall: pierde el suelo
+        Jump --> Fall: velocidad vertical <= 0
+        Fall --> Jump: coyote time o jump buffer
+        Fall --> Grounded: aterriza
+        Knockback --> Grounded: termina en suelo
+        Knockback --> Fall: termina en aire
+    }
+
+    state Acciones {
+        [*] --> Ready
+        Ready --> Attack: ataque
+        Attack --> Ready: termina animacion
+    }
 ```
 
-La maquina de estados de gameplay es la fuente de verdad. Actualmente `Jump` y
-`Fall` reproducen directamente sus estados del Animator mediante `Animator.Play()`.
-Por ese motivo no necesitan una transicion grafica entre ambos en el Animator.
+`Jump` y `Fall` reproducen directamente sus estados del Animator mediante
+`Animator.Play()`. Mientras `Attack` esta activo, esos cambios visuales se posponen
+para no interrumpir el golpe; la fisica aerea continua ejecutandose normalmente.
 
 ## Salto asistido
 
@@ -169,7 +185,8 @@ los conecta para formar el comportamiento completo del jugador. Por ejemplo:
 
 ```text
 PlayerMovement
-  contiene StateMachine
+  contiene StateMachine de locomocion
+  contiene StateMachine de acciones
   contiene PlayerLocomotion
   contiene PlayerAnimationController
   contiene PlayerDamageReaction
@@ -200,7 +217,7 @@ donde se crean los objetos y se conectan sus dependencias.
 4. Crear el estado en `PlayerMovement.Awake()`.
 5. Agregar metodos privados de cambio de estado en `PlayerMovement`.
 6. Delegar fisica, animacion y audio a sus clases correspondientes.
-7. Probar entrada, salida, interrupciones y regreso a locomocion.
+7. Probar entrada, salida, interrupciones y convivencia con la otra maquina.
 
 Un estado nuevo solo se justifica cuando agrega reglas de gameplay diferentes. Una
 fase puramente visual puede resolverse dentro del Animator sin crear otro estado.

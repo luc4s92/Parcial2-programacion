@@ -18,7 +18,7 @@ public sealed class PlayerInputReader : MonoBehaviour
     internal bool JumpPressed => jumpAction.WasPressedThisFrame();
     internal bool JumpHeld => jumpAction.IsPressed();
     internal bool JumpReleased => jumpAction.WasReleasedThisFrame();
-    internal bool AttackReleased => attackAction.WasReleasedThisFrame();
+    internal bool AttackPressed => attackAction.WasPressedThisFrame();
 
     private void Awake()
     {

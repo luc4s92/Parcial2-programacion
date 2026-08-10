@@ -30,14 +30,14 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     [Header("Combate")]
     [SerializeField] private float collitionForce = 6f;
     [SerializeField] private float knockbackDuration = 0.25f;
-    [SerializeField] private float attackBrakeDeceleration = 90f;
 
     [Header("Referencias")]
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerAudio playerAudio;
 
     private Health health;
-    private StateMachine stateMachine;
+    private StateMachine locomotionStateMachine;
+    private StateMachine actionStateMachine;
     private PlayerLocomotion locomotion;
     private PlayerAnimationController animationController;
     private PlayerDamageReaction damageReaction;
@@ -45,6 +45,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     private PlayerGroundedState groundedState;
     private PlayerJumpState jumpState;
     private PlayerFallState fallState;
+    private PlayerReadyActionState readyActionState;
     private PlayerAttackState attackState;
     private PlayerKnockbackState knockbackState;
     private PlayerDeadState deadState;
@@ -73,8 +74,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             jumpCutMultiplier: jumpCutMultiplier,
             fallGravityMultiplier: fallGravityMultiplier,
             lowJumpGravityMultiplier: lowJumpGravityMultiplier,
-            maxFallSpeed: maxFallSpeed,
-            attackBrakeDeceleration: attackBrakeDeceleration
+            maxFallSpeed: maxFallSpeed
         );
 
         locomotion = new PlayerLocomotion(
@@ -92,12 +92,11 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             collitionForce
         );
 
-        attackState = new PlayerAttackState(locomotion, animationController, playerAudio);
+        readyActionState = new PlayerReadyActionState(inputReader, ChangeToAttackState);
+        attackState = new PlayerAttackState(animationController, playerAudio);
         deadState = new PlayerDeadState(damageReaction);
         groundedState = new PlayerGroundedState(
-            inputReader,
             locomotion,
-            ChangeToAttackState,
             ChangeToJumpState,
             ChangeToFallState
         );
@@ -113,7 +112,8 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             knockbackDuration,
             ResolveLocomotionState
         );
-        stateMachine = new StateMachine(groundedState);
+        locomotionStateMachine = new StateMachine(groundedState);
+        actionStateMachine = new StateMachine(readyActionState);
 
         health.OnLifeChanged += OnLifeChanged;
         health.OnDamaged += OnDamaged;
@@ -133,7 +133,10 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         if (health.IsAlive)
         {
             locomotion.UpdateGroundState();
-            stateMachine.Tick();
+            locomotionStateMachine.Tick();
+
+            if (!locomotionStateMachine.IsInState(knockbackState))
+                actionStateMachine.Tick();
         }
 
         animationController.SetGrounded(locomotion.IsGrounded);
@@ -150,17 +153,17 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void ChangeToGroundedState()
     {
-        stateMachine.ChangeState(groundedState);
+        locomotionStateMachine.ChangeState(groundedState);
     }
 
     private void ChangeToJumpState()
     {
-        stateMachine.ChangeState(jumpState);
+        locomotionStateMachine.ChangeState(jumpState);
     }
 
     private void ChangeToFallState()
     {
-        stateMachine.ChangeState(fallState);
+        locomotionStateMachine.ChangeState(fallState);
     }
 
     private void ResolveLocomotionState()
@@ -173,13 +176,13 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void ChangeToAttackState()
     {
-        stateMachine.ChangeState(attackState);
+        actionStateMachine.ChangeState(attackState);
     }
 
     private void ChangeToKnockbackState(Vector2 direction)
     {
         knockbackState.Configure(direction);
-        stateMachine.ChangeState(knockbackState);
+        locomotionStateMachine.ChangeState(knockbackState);
     }
 
     private void OnLifeChanged(int currentLife, int maxLife)
@@ -204,13 +207,16 @@ public class PlayerMovement : MonoBehaviour, IDamageable
 
     private void OnDeath()
     {
-        stateMachine.ChangeState(deadState);
+        CancelCurrentAction();
+        locomotionStateMachine.ChangeState(deadState);
     }
 
     public void OnAttackAnimationFinished()
     {
-        if (stateMachine.IsInState(attackState))
-            ResolveLocomotionState();
+        if (!actionStateMachine.IsInState(attackState)) return;
+
+        actionStateMachine.ChangeState(readyActionState);
+        RestoreAirborneAnimation();
     }
 
     public void OnDamageAnimationFinished()
@@ -229,12 +235,13 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     public void TakeDamage(int damage, Vector2 attackDirection)
     {
         if (!health.IsAlive ||
-            stateMachine.IsInState(knockbackState) ||
-            stateMachine.IsInState(deadState))
+            locomotionStateMachine.IsInState(knockbackState) ||
+            locomotionStateMachine.IsInState(deadState))
         {
             return;
         }
 
+        CancelCurrentAction();
         health.TakeDamage(damage, attackDirection);
 
         if (health.IsAlive)
@@ -245,5 +252,19 @@ public class PlayerMovement : MonoBehaviour, IDamageable
     {
         Gizmos.color = Color.red;
         Gizmos.DrawLine(transform.position, transform.position + Vector3.down * longitudRaycast);
+    }
+
+    private void CancelCurrentAction()
+    {
+        if (!actionStateMachine.IsInState(readyActionState))
+            actionStateMachine.ChangeState(readyActionState);
+    }
+
+    private void RestoreAirborneAnimation()
+    {
+        if (locomotionStateMachine.IsInState(jumpState))
+            animationController.PlayJump();
+        else if (locomotionStateMachine.IsInState(fallState))
+            animationController.PlayFall();
     }
 }
