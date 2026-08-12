@@ -187,6 +187,16 @@ el jugador, avanza con `Rigidbody2D` y rota durante el trayecto. Al tocar un ene
 una pared o al vencer su vida util, se desactiva y vuelve a `ComponentPool<T>` en vez
 de destruirse. La capacidad actual es de cuatro instancias simultaneas.
 
+La habilidad comienza bloqueada. `PlayerProgression` conserva entre escenas un
+`ShurikenInventory` con tres cargas maximas. El pickup de desbloqueo habilita el
+ataque y llena las cargas; cada lanzamiento consume una y el pickup de recarga
+restaura una. `MenuSystem.Play()` reinicia este progreso al comenzar otra partida.
+
+`PlayerShurikenCombat` depende de `IShurikenInventory`, no de pickups ni de la UI.
+La carga se consume despues de obtener un proyectil del pool, por lo que un pool
+ocupado nunca descuenta municion. `ShurikenHud` escucha el evento `Changed` y muestra
+tres diamantes debajo de la vida; permanece oculto hasta desbloquear la habilidad.
+
 Bindings actuales:
 
 - Teclado: `X`.

@@ -210,13 +210,20 @@ Implementado:
 - Desactivacion al impactar enemigos o superficies solidas.
 - Reutilizacion mediante `ComponentPool<T>` con un maximo de cuatro activos.
 - Punto de lanzamiento y prefab configurados en el prefab del jugador.
+- Desbloqueo de la habilidad mediante pickup.
+- Inventario persistente entre escenas con tres cargas iniciales.
+- Consumo de una carga por lanzamiento y pickup de recarga individual.
+- HUD compacto con icono y tres indicadores, oculto mientras la habilidad esta bloqueada.
+- Reinicio de la progresion al comenzar una partida nueva desde el menu.
+- Contrato `IShurikenInventory` inyectado al combate para separar progresion, ataque y UI.
 
 Pendiente:
 
 - Probar el lanzamiento a izquierda y derecha con teclado y joystick.
 - Confirmar impactos contra Skeleton, Demon y paredes de Tilemap.
 - Ajustar velocidad, escala, rotacion y frame exacto de salida segun game feel.
-- Decidir mas adelante si el shuriken se desbloquea, consume municion o usa un recurso.
+- Definir como se obtienen recargas en los niveles definitivos.
+- Evaluar mejoras de capacidad de tres a cinco cargas.
 
 Criterios de prueba:
 
@@ -224,6 +231,10 @@ Criterios de prueba:
 - El proyectil siempre sale hacia el lado visual correcto.
 - Ningun impacto deja shurikenes activos fuera del escenario.
 - El limite del pool evita crear instancias sin control.
+- El ataque no responde antes de recoger el desbloqueo ni con cero cargas.
+- Un lanzamiento valido descuenta exactamente una carga del HUD.
+- Una recarga llena como maximo la capacidad y no se consume si el inventario esta lleno.
+- El desbloqueo y las cargas se conservan al pasar de `Level1` a `Level2`.
 
 ### Iteracion 4: audio y feedback
 

@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public static class MetroidvaniaTestSceneBuilder
 {
@@ -18,6 +19,12 @@ public static class MetroidvaniaTestSceneBuilder
     private const string DemonPrefabPath = "Assets/Prefabs/Enemies/Demon.prefab";
     private const string HellHoundTriggerPrefabPath =
         "Assets/Prefabs/Enemies/HellHoundSpawnTrigger.prefab";
+    private const string ShurikenUnlockPrefabPath =
+        "Assets/Prefabs/Items/ShurikenUnlockPickup.prefab";
+    private const string ShurikenChargePrefabPath =
+        "Assets/Prefabs/Items/ShurikenChargePickup.prefab";
+    private const string ShurikenHudPrefabPath =
+        "Assets/Prefabs/UI/ShurikenHUD.prefab";
 
     private static readonly Color MainRouteColor = new(0.33f, 0.43f, 0.46f);
     private static readonly Color UpperRouteColor = new(0.24f, 0.48f, 0.58f);
@@ -123,6 +130,12 @@ public static class MetroidvaniaTestSceneBuilder
         GameObject player = InstantiatePrefab(PlayerPrefabPath, "Player_Playtest",
             playerSpawnPosition, actors);
         CreateCamera(player.transform, actors);
+        CreateHud();
+
+        InstantiatePrefab(ShurikenUnlockPrefabPath, "ShurikenUnlockPickup",
+            playerSpawnPosition + new Vector3(3f, 1f, 0f), actors);
+        InstantiatePrefab(ShurikenChargePrefabPath, "ShurikenChargePickup",
+            playerSpawnPosition + new Vector3(6f, 1f, 0f), actors);
 
         InstantiatePrefab(SkeletonPrefabPath, "Skeleton_Runway", new Vector3(-1f, -0.8f, 0f),
             actors);
@@ -222,6 +235,32 @@ public static class MetroidvaniaTestSceneBuilder
         controller.movement = new Vector3(0f, 2f, -10f);
     }
 
+    private static void CreateHud()
+    {
+        GameObject canvasObject = new(
+            "Canvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster)
+        );
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(800f, 600f);
+
+        GameObject hud = InstantiatePrefab(
+            ShurikenHudPrefabPath,
+            "ShurikenHUD",
+            Vector3.zero,
+            canvasObject.transform
+        );
+        hud.GetComponent<RectTransform>().anchoredPosition = new Vector2(18f, -50f);
+    }
+
     private static Transform CreateRespawnPoint(Vector3 position, Transform parent)
     {
         GameObject point = new("RespawnPoint");
@@ -319,7 +358,10 @@ public static class MetroidvaniaTestSceneBuilder
             PlayerPrefabPath,
             SkeletonPrefabPath,
             DemonPrefabPath,
-            HellHoundTriggerPrefabPath
+            HellHoundTriggerPrefabPath,
+            ShurikenUnlockPrefabPath,
+            ShurikenChargePrefabPath,
+            ShurikenHudPrefabPath
         };
 
         string missingPath = paths.FirstOrDefault(path =>

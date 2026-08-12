@@ -2,16 +2,14 @@ using UnityEngine;
 
 public class PowerUp : Item
 {
-    public override void Use(GameObject player)
+    public override bool TryUse(GameObject player)
     {
-        Debug.Log("Agarraste un Power Up -> más velocidad!");
-
         PlayerMovement movement = player.GetComponent<PlayerMovement>();
-        if (movement != null)
-        {
-            movement.ApplySpeedModifier(2f, 5f); //  multiplica por 2 la velocidad por 5s
-        }
+        if (movement == null)
+            return false;
 
-        Destroy(gameObject);
+        Debug.Log("Agarraste un Power Up -> mas velocidad!");
+        movement.ApplySpeedModifier(2f, 5f);
+        return true;
     }
 }

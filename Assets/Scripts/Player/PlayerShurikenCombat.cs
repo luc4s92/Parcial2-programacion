@@ -6,6 +6,7 @@ internal sealed class PlayerShurikenCombat
     private readonly Transform owner;
     private readonly Transform firePoint;
     private readonly ComponentPool<PlayerShurikenProjectile> projectilePool;
+    private readonly IShurikenInventory inventory;
     private readonly Action<PlayerShurikenProjectile> releaseProjectile;
     private readonly float cooldown;
     private readonly float projectileSpeed;
@@ -19,6 +20,7 @@ internal sealed class PlayerShurikenCombat
         Transform owner,
         Transform firePoint,
         ComponentPool<PlayerShurikenProjectile> projectilePool,
+        IShurikenInventory inventory,
         float cooldown,
         float projectileSpeed,
         float projectileRotationSpeed,
@@ -28,6 +30,7 @@ internal sealed class PlayerShurikenCombat
         this.owner = owner;
         this.firePoint = firePoint != null ? firePoint : owner;
         this.projectilePool = projectilePool;
+        this.inventory = inventory;
         releaseProjectile = projectilePool != null
             ? projectilePool.Release
             : null;
@@ -39,6 +42,8 @@ internal sealed class PlayerShurikenCombat
     }
 
     internal bool CanThrow =>
+        inventory != null &&
+        inventory.CanThrow &&
         cooldownRemaining <= 0f &&
         projectilePool != null &&
         projectilePool.CanGet;
@@ -57,6 +62,12 @@ internal sealed class PlayerShurikenCombat
         PlayerShurikenProjectile projectile = projectilePool.Get();
         if (projectile == null)
             return false;
+
+        if (!inventory.TryConsumeCharge())
+        {
+            projectilePool.Release(projectile);
+            return false;
+        }
 
         Vector2 direction = owner.localScale.x < 0f
             ? Vector2.left

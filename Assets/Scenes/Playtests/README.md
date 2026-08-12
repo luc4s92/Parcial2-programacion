@@ -41,6 +41,9 @@ reincorporarse al recorrido superior.
 - Si empujar contra una pared permite deslizarse hacia abajo sin quedar suspendido.
 - Si una pulsacion breve y una de 0.2 segundos producen alturas diferentes y previsibles.
 - Si la caida mas rapida permite encadenar plataformas sin perder demasiado control aereo.
+- Si el shuriken permanece bloqueado antes de recoger el pickup celeste.
+- Si cada lanzamiento apaga un indicador del HUD y el pickup amarillo restaura uno.
+- Si intentar recoger una recarga con las tres cargas completas deja el pickup disponible.
 
 Conviene probar primero sin ajustar valores. Despues de una vuelta, cambiar una sola
 variable por vez y repetir el mismo recorrido.

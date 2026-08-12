@@ -2,22 +2,17 @@ using UnityEngine;
 
 public class HealthPotion : Item
 {
-    public override void Use(GameObject player)
+    public override bool TryUse(GameObject player)
     {
         Health health = player.GetComponent<Health>();
-        if (health != null)
+        if (health == null || health.Life >= health.MaxLife)
         {
-            if (health.Life < health.MaxLife) //  solo cura si no está full
-            {
-                health.Heal(1);
-                Debug.Log("Agarraste una poción -> +1 vida");
-            }
-            else
-            {
-                Debug.Log("La vida está al máximo, no puedes curarte más.");
-            }
+            Debug.Log("La vida esta al maximo, no puedes curarte mas.");
+            return false;
         }
 
-        Destroy(gameObject); // Siempre desaparece al recogerlo
+        health.Heal(1);
+        Debug.Log("Agarraste una pocion -> +1 vida");
+        return true;
     }
 }

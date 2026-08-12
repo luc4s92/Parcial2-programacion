@@ -137,6 +137,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             transform,
             shurikenFirePoint,
             shurikenPool,
+            PlayerProgression.Shuriken,
             shurikenCooldown,
             shurikenSpeed,
             shurikenRotationSpeed,
