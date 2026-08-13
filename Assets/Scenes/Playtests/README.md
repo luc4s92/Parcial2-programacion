@@ -44,6 +44,9 @@ reincorporarse al recorrido superior.
 - Si el shuriken permanece bloqueado antes de recoger el pickup celeste.
 - Si cada lanzamiento apaga un indicador del HUD y el pickup amarillo restaura uno.
 - Si intentar recoger una recarga con las tres cargas completas deja el pickup disponible.
+- Si la zona muerta evita vibraciones al corregir pasos cortos sobre una plataforma.
+- Si la anticipacion horizontal muestra suficiente recorrido sin sentirse brusca al girar.
+- Si el seguimiento vertical permite leer el aterrizaje sin copiar cada pixel del salto.
 
 Conviene probar primero sin ajustar valores. Despues de una vuelta, cambiar una sola
 variable por vez y repetir el mismo recorrido.
@@ -71,6 +74,28 @@ manuales dentro de la escena son temporales.
 
 La escena figura deshabilitada en Build Settings porque es una herramienta de
 desarrollo y no forma parte del flujo `Menu -> Level1 -> Level2`.
+
+## Camara
+
+`CameraController` usa seguimiento amortiguado independiente por eje, una zona muerta
+y anticipacion horizontal. La referencia busca un comportamiento de metroidvania:
+mantener estable el encuadre durante movimientos pequenos y mostrar mas espacio hacia
+la direccion de avance.
+
+`PlayerCameraBootstrap` conecta automaticamente toda escena que tenga objetos
+etiquetados `MainCamera` y `Player`. Para limitar una habitacion, se puede asignar
+un `Collider2D` en `Movement Bounds`; la camara considera su tamano ortografico al
+calcular los bordes.
+
+Valores iniciales recomendados:
+
+| Ajuste | Valor |
+| --- | ---: |
+| Horizontal Smooth Time | `0.16` |
+| Vertical Smooth Time | `0.22` |
+| Dead Zone | `0.8 x 0.45` |
+| Look Ahead Distance | `1.35` |
+| Look Ahead Smooth Time | `0.25` |
 
 ## Referencias
 

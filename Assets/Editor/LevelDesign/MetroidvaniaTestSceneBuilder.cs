@@ -230,9 +230,7 @@ public static class MetroidvaniaTestSceneBuilder
         cameraObject.AddComponent<AudioListener>();
 
         CameraController controller = cameraObject.AddComponent<CameraController>();
-        controller.objetive = player;
-        controller.cameraSpeed = 0.09f;
-        controller.movement = new Vector3(0f, 2f, -10f);
+        controller.Configure(player, new Vector3(0f, 1.25f, -10f));
     }
 
     private static void CreateHud()
