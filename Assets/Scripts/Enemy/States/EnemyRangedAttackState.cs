@@ -7,19 +7,22 @@ internal sealed class EnemyRangedAttackState : IState
     private readonly EnemyAnimationController animationController;
     private readonly EnemyRangedCombat combat;
     private readonly Action requestIdle;
+    private readonly Action requestWindup;
 
     internal EnemyRangedAttackState(
         EnemyTargeting targeting,
         EnemyMovement movement,
         EnemyAnimationController animationController,
         EnemyRangedCombat combat,
-        Action requestIdle)
+        Action requestIdle,
+        Action requestWindup)
     {
         this.targeting = targeting;
         this.movement = movement;
         this.animationController = animationController;
         this.combat = combat;
         this.requestIdle = requestIdle;
+        this.requestWindup = requestWindup;
     }
 
     void IState.Enter()
@@ -39,7 +42,9 @@ internal sealed class EnemyRangedAttackState : IState
         }
 
         movement.Face(targeting.Target);
-        combat.TryFire(targeting.Target);
+
+        if (combat.CanFire)
+            requestWindup();
     }
 
     void IState.Exit()

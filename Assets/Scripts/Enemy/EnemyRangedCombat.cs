@@ -13,6 +13,8 @@ internal sealed class EnemyRangedCombat
     private readonly int projectileDamage;
     private float cooldownRemaining;
 
+    internal bool CanFire => cooldownRemaining <= 0f;
+
     internal EnemyRangedCombat(
         Transform owner,
         Transform firePoint,
@@ -40,10 +42,10 @@ internal sealed class EnemyRangedCombat
             cooldownRemaining -= deltaTime;
     }
 
-    internal void TryFire(Transform target)
+    internal bool TryFire(Transform target)
     {
         if (cooldownRemaining > 0f || projectilePool == null || target == null)
-            return;
+            return false;
 
         Vector2 direction = target.position - firePoint.position;
         if (direction.sqrMagnitude <= 0.001f)
@@ -51,7 +53,7 @@ internal sealed class EnemyRangedCombat
 
         EnemyProjectile projectile = projectilePool.Get();
         if (projectile == null)
-            return;
+            return false;
 
         projectile.Initialize(
             owner,
@@ -64,5 +66,6 @@ internal sealed class EnemyRangedCombat
         );
 
         cooldownRemaining = fireCooldown;
+        return true;
     }
 }
