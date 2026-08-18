@@ -100,16 +100,16 @@ public abstract class EnemyController : MonoBehaviour
         GameManager.Instance?.UnregisterEnemy(this);
     }
 
-    public virtual void TakingDamage(Vector2 sourcePosition, int totalDamage)
+    public virtual bool TryTakeDamage(Vector2 sourcePosition, int totalDamage)
     {
         if (!IsAlive || IsInState(hitState) || IsInState(deadState))
-            return;
+            return false;
 
         enemyHealth.TakeDamage(totalDamage);
         if (!enemyHealth.IsAlive)
         {
             ChangeState(deadState);
-            return;
+            return true;
         }
 
         Vector2 knockbackDirection = new Vector2(
@@ -119,6 +119,7 @@ public abstract class EnemyController : MonoBehaviour
 
         hitState.Configure(knockbackDirection);
         ChangeState(hitState);
+        return true;
     }
 
     public void DeactivateDamage()
@@ -217,12 +218,6 @@ public abstract class EnemyController : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("Sword"))
-        {
-            TakingDamage(collision.transform.position, 1);
-            return;
-        }
-
         HandleTriggerEnter(collision);
     }
 

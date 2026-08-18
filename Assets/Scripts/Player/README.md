@@ -43,6 +43,7 @@ La locomocion y las acciones avanzan en paralelo sin competir por un unico estad
 | `PlayerSpeedModifier` | Mantiene la velocidad base y modificadores temporales. |
 | `PlayerShurikenCombat` | Valida cooldown, direccion y creacion del shuriken. |
 | `PlayerShurikenProjectile` | Mueve, rota, aplica dano y devuelve el shuriken al pool. |
+| `PlayerMeleeHitbox` | Aplica dano melee una vez por objetivo y confirma el primer impacto. |
 | `PlayerAudio` | Reproduce los sonidos locales del jugador. |
 | `ComponentPool<T>` | Limita y reutiliza componentes instanciados, incluidos ambos tipos de proyectil. |
 | `OneWayPlatform` | Marca y configura una plataforma que se atraviesa desde abajo o con abajo + salto. |
@@ -114,11 +115,24 @@ Esto reduce el acoplamiento entre cada estado y el coordinador.
 
 ### Attack
 
-- Activa el parametro de ataque y reproduce el sonido de espada.
+- Inicia una ventana de impactos nueva y reproduce el swing de espada.
+- El hitbox aplica dano una vez por enemigo durante el ataque.
+- `blade_hit` se reproduce solo en el primer dano confirmado del ataque.
 - Termina mediante un Animation Event.
 - No modifica velocidad, gravedad, salto ni orientacion.
 - Puede convivir con `Grounded`, `Jump` o `Fall`.
 - Al terminar vuelve a `Ready` y restaura la animacion de locomocion correspondiente.
+
+#### Capas de audio del ataque
+
+El jugador reproduce el swing al iniciar la accion y `blade_hit` solo cuando
+`EnemyController.TryTakeDamage()` confirma un impacto. El enemigo conserva su propia
+capa de reaccion al dano. Esta separacion permite reemplazar o mezclar cada sonido
+sin modificar las reglas de combate.
+
+Los clips actuales son provisorios. En la iteracion general de media se deben
+reemplazar y balancear swing, impacto, reaccion y muerte como un conjunto, prestando
+especial atencion a que `blade_hit` y la reaccion enemiga no se saturen entre si.
 
 ### RangedAttack
 

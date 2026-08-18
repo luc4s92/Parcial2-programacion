@@ -1,22 +1,24 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemyAudio : MonoBehaviour
+public sealed class EnemyAudio : MonoBehaviour
 {
     [Header("Clips de Sonido")]
     [SerializeField] private AudioSource hitSFX;
     [SerializeField] private AudioSource deathSFX;
 
-
-
     public void PlayHit()
     {
-        hitSFX.Play();
+        hitSFX?.Play();
     }
 
     public void PlayDeath()
     {
-        deathSFX.Play();
+        if (deathSFX != null)
+        {
+            deathSFX.Play();
+            return;
+        }
+
+        hitSFX?.Play();
     }
 }

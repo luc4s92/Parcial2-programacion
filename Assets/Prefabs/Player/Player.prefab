@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7950361525347615077}
   - component: {fileID: 1851506235015022440}
+  - component: {fileID: 6000000000000000000}
   m_Layer: 0
   m_Name: atackRange
   m_TagString: Sword
@@ -78,6 +79,19 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1.9516968, y: 0.60585093}
   m_EdgeRadius: 0
+--- !u!114 &6000000000000000000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 357161222353169377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8b814b2d7fe4f7ebb68ccc816a6a261, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  damage: 1
 --- !u!1 &942650872783276706
 GameObject:
   m_ObjectHideFlags: 0

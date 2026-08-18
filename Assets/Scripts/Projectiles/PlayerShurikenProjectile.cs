@@ -64,7 +64,7 @@ public sealed class PlayerShurikenProjectile : MonoBehaviour
                 Vector2 sourcePosition = owner != null
                     ? owner.position
                     : transform.position;
-                enemy.TakingDamage(sourcePosition, damage);
+                enemy.TryTakeDamage(sourcePosition, damage);
             }
 
             Release();
