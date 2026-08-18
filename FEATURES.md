@@ -246,7 +246,7 @@ Criterios de prueba:
 
 ### Iteracion 4: audio y feedback
 
-Estado: pendiente.
+Estado: en progreso.
 
 Objetivo:
 
@@ -260,6 +260,24 @@ Mejoras propuestas:
 - Ajustar low-pass por vida baja.
 - Evitar sonidos duplicados.
 - Agregar variaciones de SFX si hace falta.
+
+Implementado:
+
+- Swing de espada al iniciar el ataque e impacto solo al confirmar dano.
+- Un unico sonido de impacto aunque el golpe alcance varios colliders.
+- Hitbox melee responsable de aplicar dano una vez por enemigo y por ataque.
+- Reaccion sonora del enemigo separada del feedback del atacante.
+- Reproduccion de audio enemigo protegida ante referencias sin asignar.
+
+Pendiente de media y mezcla:
+
+- Reemplazar los clips actuales de swing, impacto, dano y muerte por un conjunto
+  sonoro coherente. Los archivos actuales se consideran provisorios.
+- Ajustar el volumen relativo entre `blade_hit` y la reaccion del enemigo para que
+  las dos capas se complementen sin saturar el impacto.
+- Balancear musica, voces y SFX desde el Audio Mixer despues de reemplazar los clips.
+- Validar variaciones de pitch o clips alternativos solo cuando la libreria final
+  de sonidos este definida.
 
 Criterios de prueba:
 
@@ -296,7 +314,7 @@ Pendiente:
 
 ### Iteracion 5: flujo de escenas y UX
 
-Estado: pendiente.
+Estado: en progreso.
 
 Objetivo:
 
@@ -310,6 +328,13 @@ Mejoras propuestas:
 - Volver al menu desde pantallas finales.
 - Evaluar pausa.
 - Limpiar logs de debug visibles durante gameplay.
+
+Validado:
+
+- El game loop principal funciona correctamente con los sistemas actuales.
+- Los cambios de movimiento, combate y progresion no bloquearon el flujo de partida.
+- Las mejoras restantes de esta iteracion corresponden a UX y robustez, no a una
+  correccion del loop base.
 
 Criterios de prueba:
 

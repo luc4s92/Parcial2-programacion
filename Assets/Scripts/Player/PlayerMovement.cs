@@ -82,6 +82,16 @@ public class PlayerMovement : MonoBehaviour, IDamageable
         Collider2D playerCollider = GetComponent<Collider2D>();
         PlayerInputReader inputReader = GetComponent<PlayerInputReader>();
         health = GetComponent<Health>();
+        PlayerMeleeHitbox meleeHitbox = GetComponentInChildren<PlayerMeleeHitbox>(true);
+
+        if (meleeHitbox == null)
+        {
+            Debug.LogError("[PlayerMovement] No se encontro el hitbox melee del jugador.", this);
+        }
+        else
+        {
+            meleeHitbox.Initialize(transform, () => playerAudio?.PlayHit());
+        }
 
         PlayerGroundDetector groundDetector = new PlayerGroundDetector(playerCollider);
         PlayerMovementPhysics movementPhysics = new PlayerMovementPhysics(
@@ -151,7 +161,7 @@ public class PlayerMovement : MonoBehaviour, IDamageable
             () => shurikenCombat.CanThrow,
             ChangeToRangedAttackState
         );
-        attackState = new PlayerAttackState(animationController, playerAudio);
+        attackState = new PlayerAttackState(animationController, playerAudio, meleeHitbox);
         rangedAttackState = new PlayerRangedAttackState(animationController);
         deadState = new PlayerDeadState(damageReaction);
         groundedState = new PlayerGroundedState(

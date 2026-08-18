@@ -41,6 +41,11 @@ enemigo concreto construye su Composition Root especifico.
 | `HellHoundSpawnTrigger` | Instancia un HellHound delante del jugador y lo envia en sentido contrario. |
 | `EnemyProjectile` | Mueve el proyectil, aplica `IDamageable` y controla su vida util. |
 | `ComponentPool<T>` | Limita, conserva y reutiliza proyectiles de enemigos y del jugador. |
+
+`EnemyController.TryTakeDamage()` devuelve si el enemigo acepto el impacto. El
+hitbox o proyectil atacante usa esa confirmacion para reproducir feedback sin
+depender de una clase concreta de enemigo. El enemigo conserva su propio sonido y
+animacion de reaccion al dano.
 | `States/*` | Decide que comportamiento puede ejecutarse y cuando transicionar. |
 
 ## Variantes actuales
