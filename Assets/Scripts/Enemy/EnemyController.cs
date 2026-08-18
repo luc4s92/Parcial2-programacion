@@ -13,6 +13,10 @@ public abstract class EnemyController : MonoBehaviour
     [SerializeField] protected int life = 3;
     [SerializeField] private bool facesRightByDefault;
 
+    [Header("Perception")]
+    [SerializeField] private LayerMask sightObstructionLayers = 1 << 3;
+    [SerializeField] private Transform sightOrigin;
+
     [Header("Damage reaction")]
     [SerializeField] private float knockbackForce = 3f;
     [SerializeField] private float hitRecoveryDuration = 0.6f;
@@ -31,6 +35,8 @@ public abstract class EnemyController : MonoBehaviour
 
     private protected EnemyMovement Movement { get; private set; }
     private protected EnemyAnimationController AnimationController { get; private set; }
+    private protected LayerMask SightObstructionLayers => sightObstructionLayers;
+    private protected Transform SightOrigin => sightOrigin != null ? sightOrigin : transform;
     protected Transform Player => player;
 
     public bool IsAlive => enemyHealth == null || enemyHealth.IsAlive;

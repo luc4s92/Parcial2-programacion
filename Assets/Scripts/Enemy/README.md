@@ -52,7 +52,9 @@ stateDiagram-v2
     [*] --> Idle
     Idle --> Chase: detecta al jugador
     Chase --> Idle: sale del radio
-    Chase --> Attack: entra en rango
+    Chase --> Windup: entra en rango y puede atacar
+    Windup --> Chase: el jugador sale del rango
+    Windup --> Attack: termina la anticipacion
     Attack --> Chase: termina el ataque
     Idle --> Hit: recibe dano
     Chase --> Hit: recibe dano
@@ -64,9 +66,14 @@ stateDiagram-v2
     Attack --> Dead: dano letal
 ```
 
+`EnemyAttackWindupState` detiene y orienta al Skeleton, y muestra un pulso de color
+antes de iniciar la animacion. Si el jugador sale del rango durante esta ventana,
+el ataque se cancela y vuelve a perseguirlo.
+
 La animacion `atack` abre y cierra `EnemyWeapon` mediante `BeginAttackHit` y
 `EndAttackHit`. `EnemyCombat` permite un unico impacto y `EndAttack` inicia el
-cooldown. El cuerpo del Skeleton no produce dano.
+cooldown. `attackTimeout` completa el estado si falta el Animation Event final. El
+cuerpo del Skeleton no produce dano.
 
 ### HellHound
 
@@ -99,8 +106,12 @@ Prefabs:
 ```mermaid
 stateDiagram-v2
     [*] --> RangedIdle
-    RangedIdle --> RangedAttack: detecta al jugador
-    RangedAttack --> RangedIdle: pierde el objetivo
+    RangedIdle --> Aim: detecta al jugador
+    Aim --> RangedIdle: pierde el objetivo
+    Aim --> Windup: termina el cooldown
+    Windup --> RangedIdle: pierde el objetivo
+    Windup --> Fire: termina la anticipacion
+    Fire --> Aim: termina la recuperacion
     RangedIdle --> Hit: recibe dano
     RangedAttack --> Hit: recibe dano
     Hit --> RangedAttack: conserva el objetivo
@@ -109,9 +120,17 @@ stateDiagram-v2
 ```
 
 El Demon permanece fijo. Mientras detecta al jugador, actualiza su orientacion en
-cada `Tick`: si el jugador lo cruza por arriba, solo cambia `localScale.x` y continua
-disparando. Cada proyectil conserva la direccion calculada al momento de salir y
-atraviesa a todos los enemigos.
+cada `Tick`: si el jugador lo cruza por arriba, solo cambia `localScale.x`. Antes de
+cada disparo pasa por una anticipacion visual; luego crea un proyectil y respeta una
+recuperacion breve antes de volver a apuntar. Cada proyectil conserva la direccion
+calculada al momento de salir y atraviesa a todos los enemigos.
+
+Skeleton y Demon requieren linea de vision contra `Sight Obstruction Layers`. El
+perfil inicial usa el layer `ground`, por lo que una pared o plataforma solida evita
+la deteccion y cancela una anticipacion activa. El `Linecast` comienza en el hijo
+`SightOrigin` del prefab y termina en el centro del collider del jugador. Esto evita
+que el suelo se detecte por error cuando el pivote de un personaje esta cerca de sus
+pies. Si un prefab no asigna `SightOrigin`, se usa su transform raiz como respaldo.
 
 Los proyectiles usan el patron **Object Pool**. `ComponentPool<EnemyProjectile>` crea
 instancias bajo demanda hasta `projectilePoolCapacity`; al impactar o agotar su vida
@@ -208,6 +227,9 @@ seria util si un mismo estado pudiera elegir, por ejemplo, entre vuelo directo o
 Skeleton:
 
 - Persigue, frena, ataca una vez por ventana y respeta el cooldown.
+- Muestra la anticipacion antes del ataque y permite alejarse para cancelarlo.
+- Completa el ataque por timeout aunque falte el evento `EndAttack`.
+- No detecta ni ataca a traves de colliders del layer `ground`.
 - El cuerpo no dana por contacto y la muerte se notifica una sola vez.
 
 HellHound:
@@ -221,7 +243,8 @@ HellHound:
 Demon:
 
 - Fuera de `detectionRadius` no dispara.
-- Dentro del radio dispara segun `fireCooldown` sin desplazarse.
+- Dentro del radio anticipa, dispara una vez y respeta recuperacion y cooldown.
+- Perder la linea de vision durante la anticipacion cancela el disparo.
 - Al detectar al jugador conserva la orientacion correcta del sprite base.
 - Si el jugador cruza al otro lado, gira solo en X y los nuevos disparos cambian de direccion.
 - El proyectil dana al jugador y vuelve al pool al tocar el escenario o expirar.

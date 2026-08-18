@@ -8,6 +8,10 @@ public sealed class MeleeEnemy : EnemyController
     [SerializeField] private float attackCooldown = 0.75f;
     [SerializeField] private int attackDamage = 1;
     [SerializeField] private Collider2D attackHitbox;
+    [SerializeField, Min(0f)] private float attackWindupDuration = 0.2f;
+    [SerializeField, Min(0.05f)] private float attackTimeout = 0.7f;
+    [SerializeField] private Color attackTelegraphColor = new(1f, 0.55f, 0.2f, 1f);
+    [SerializeField, Min(0.1f)] private float attackTelegraphPulseSpeed = 8f;
 
     [Header("Drops")]
     [SerializeField] private List<GameObject> possibleDrops;
@@ -18,12 +22,25 @@ public sealed class MeleeEnemy : EnemyController
     private EnemyCombat combat;
     private EnemyIdleState idleState;
     private EnemyChaseState chaseState;
+    private EnemyAttackWindupState windupState;
     private EnemyAttackState attackState;
 
     private protected override IState CreateInitialState()
     {
-        targeting = new EnemyTargeting(transform, Player, detectionRadius, attackRange);
+        targeting = new EnemyTargeting(
+            transform,
+            Player,
+            SightOrigin,
+            detectionRadius,
+            attackRange,
+            SightObstructionLayers
+        );
         combat = new EnemyCombat(transform, attackHitbox, attackDamage, attackCooldown);
+        EnemyAttackTelegraph telegraph = new EnemyAttackTelegraph(
+            GetComponent<SpriteRenderer>(),
+            attackTelegraphColor,
+            attackTelegraphPulseSpeed
+        );
 
         idleState = new EnemyIdleState(
             targeting,
@@ -37,6 +54,15 @@ public sealed class MeleeEnemy : EnemyController
             AnimationController,
             combat,
             ChangeToIdleState,
+            ChangeToWindupState
+        );
+        windupState = new EnemyAttackWindupState(
+            targeting,
+            Movement,
+            telegraph,
+            attackWindupDuration,
+            () => targeting.IsTargetInAttackRange,
+            ResolveBehaviourState,
             ChangeToAttackState
         );
         attackState = new EnemyAttackState(
@@ -44,6 +70,7 @@ public sealed class MeleeEnemy : EnemyController
             Movement,
             AnimationController,
             combat,
+            attackTimeout,
             ResolveBehaviourState
         );
 
@@ -124,5 +151,10 @@ public sealed class MeleeEnemy : EnemyController
     private void ChangeToAttackState()
     {
         ChangeState(attackState);
+    }
+
+    private void ChangeToWindupState()
+    {
+        ChangeState(windupState);
     }
 }

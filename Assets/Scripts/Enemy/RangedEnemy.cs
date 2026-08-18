@@ -10,12 +10,18 @@ public sealed class RangedEnemy : EnemyController
     [SerializeField] private float projectileLifetime = 5f;
     [SerializeField] private int projectileDamage = 1;
     [SerializeField] private int projectilePoolCapacity = 8;
+    [SerializeField, Min(0f)] private float fireWindupDuration = 0.45f;
+    [SerializeField, Min(0f)] private float fireRecoveryDuration = 0.25f;
+    [SerializeField] private Color fireTelegraphColor = new(1f, 0.35f, 0.15f, 1f);
+    [SerializeField, Min(0.1f)] private float fireTelegraphPulseSpeed = 6f;
 
     private EnemyTargeting targeting;
     private ComponentPool<EnemyProjectile> projectilePool;
     private EnemyRangedCombat combat;
     private EnemyRangedIdleState idleState;
     private EnemyRangedAttackState attackState;
+    private EnemyAttackWindupState windupState;
+    private EnemyRangedFireState fireState;
 
     private protected override IState CreateInitialState()
     {
@@ -26,8 +32,10 @@ public sealed class RangedEnemy : EnemyController
         targeting = new EnemyTargeting(
             transform,
             Player,
+            SightOrigin,
             detectionRadius,
-            detectionRadius
+            detectionRadius,
+            SightObstructionLayers
         );
         combat = new EnemyRangedCombat(
             transform,
@@ -37,6 +45,11 @@ public sealed class RangedEnemy : EnemyController
             projectileSpeed,
             projectileLifetime,
             projectileDamage
+        );
+        EnemyAttackTelegraph telegraph = new EnemyAttackTelegraph(
+            GetComponent<SpriteRenderer>(),
+            fireTelegraphColor,
+            fireTelegraphPulseSpeed
         );
         idleState = new EnemyRangedIdleState(
             targeting,
@@ -49,7 +62,24 @@ public sealed class RangedEnemy : EnemyController
             Movement,
             AnimationController,
             combat,
-            ChangeToIdleState
+            ChangeToIdleState,
+            ChangeToWindupState
+        );
+        windupState = new EnemyAttackWindupState(
+            targeting,
+            Movement,
+            telegraph,
+            fireWindupDuration,
+            () => targeting.IsTargetDetected,
+            ChangeToIdleState,
+            ChangeToFireState
+        );
+        fireState = new EnemyRangedFireState(
+            targeting,
+            Movement,
+            combat,
+            fireRecoveryDuration,
+            ResolveBehaviourState
         );
 
         return idleState;
@@ -91,5 +121,15 @@ public sealed class RangedEnemy : EnemyController
     private void ChangeToAttackState()
     {
         ChangeState(attackState);
+    }
+
+    private void ChangeToWindupState()
+    {
+        ChangeState(windupState);
+    }
+
+    private void ChangeToFireState()
+    {
+        ChangeState(fireState);
     }
 }
