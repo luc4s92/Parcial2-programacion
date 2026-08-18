@@ -32,6 +32,8 @@ Pulir un juego 2D hecho en Unity/C# hasta dejarlo como una muestra jugable que c
 - Demon ranged fijo con giro horizontal y proyectiles.
 - HellHound corredor con aparicion por trigger y dano por contacto.
 - Maquina de estados para Idle, Chase, Attack, Hit y Dead.
+- Anticipacion visual y cancelable antes de ataques melee y ranged.
+- Linea de vision bloqueada por terreno mediante `SightOrigin`.
 - Hitbox de ataque sincronizado mediante Animation Events.
 - Estados y servicios separados para deteccion, movimiento, combate y vida.
 - Registro de enemigos derrotados en `GameManager`.
@@ -177,6 +179,12 @@ Implementado:
 - Fallback temporizado para animaciones sin evento de finalizacion.
 - Eliminacion de estrategias e interfaces que no representaban variantes reales.
 - Documentacion de arquitectura, SOLID, DRY y decisiones de extension.
+- Estado de anticipacion reutilizable con feedback visual y cancelacion.
+- Skeleton con anticipacion, cancelacion fuera de rango y timeout de ataque.
+- Demon con estados separados de apuntado, anticipacion, disparo y recuperacion.
+- Deteccion con linea de vision contra terreno configurable por `LayerMask`.
+- Punto `SightOrigin` en los prefabs de Skeleton y Demon para evitar falsos bloqueos
+  producidos por el suelo bajo sus pies.
 
 Pendiente:
 
